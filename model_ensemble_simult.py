@@ -10,21 +10,6 @@ import compile_data
 from pdb import set_trace
 
 
-def evaluate_lneta(theta, grid):
-    mean1, mean2 = theta[0], theta[1]
-    sig1, sig2, sig12 = theta[2], theta[3], theta[4]
-    cov = np.asarray(([sig1**2, sig12], [sig12, sig2**2]))
-    icov = np.linalg.inv(cov)
-    dcov = np.exp(np.linalg.slogdet(cov)[1])#np.linalg.det(cov)
-    dp = 0.
-    for k in range(grid.shape[0]):
-        r = np.asarray((grid[k,:,0] - mean1, grid[k,:,1] - mean2))
-        dp += -0.5 * np.dot(r.T, np.dot(icov, r)) - 0.5 * np.log(dcov)
-    return dp
-    #r = np.dstack((grid[:,:,0] - mean1, grid[:,:,1] - mean2))
-    #return -0.5 * np.dot(r.T, np.dot(icov, r)) - 0.5 * np.log(np.linalg.det(cov))
-
-
 def lnlike(theta, grid):
     mean1, mean2 = theta[0], theta[1]
     sig1, sig2, sig12 = theta[2], theta[3], theta[4]
@@ -50,25 +35,6 @@ def lnlike(theta, grid):
         #set_trace()
         #dp += -0.5 * np.dot(r.T, np.dot(icov, r)) - 0.5 * np.log(dcov)
     return dp
-
-
-def dot_prod(r, icov, dcov):
-    return np.dot(r.T, np.dot(icov, r)) + dcov
-
-def lnlike_no(theta, grid):
-    mean1, mean2 = theta[0], theta[1]
-    sig1, sig2, sig12 = theta[2], theta[3], theta[4]
-    cov = np.asarray(([sig1**2, sig12], [sig12, sig2**2]))
-    icov = np.linalg.inv(cov)
-    s, lndetcov = np.linalg.slogdet(cov)#np.linalg.det(cov)
-    dcov = s * lndetcov
-    #dp = 0.
-    dp = np.sum(np.asarray([dot_prod(np.asarray((grid[k,j,0] - mean1, grid[k,j,1] - mean2)), icov, dcov) for k in range(grid.shape[0]) for j in range(grid.shape[1])]))
-
-    return -0.5 * dp
-
-
-
 
 
 def lnprior(theta):
@@ -144,7 +110,7 @@ def run_emcee(sampler, run_steps, restart_steps, pos, ndim, nwalkers, n_restarts
 
 
 
-def model(grid, nwalkers, first_init, run_steps, restart_steps, n_restarts=0, labels=['$\mu$', '$\sigma$']):
+def model(grid, nwalkers, first_init, run_steps, restart_steps, n_restarts=0, threads=1, labels=['$\mu$', '$\sigma$']):
 
     ndim = len(first_init)
 
@@ -153,7 +119,8 @@ def model(grid, nwalkers, first_init, run_steps, restart_steps, n_restarts=0, la
 
 
     t0 = time.time()
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(grid, None))
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(grid, None),
+                                    threads=threads)
 
     # Run emcee
     sampler, lp, pos = run_emcee(sampler, run_steps, restart_steps, pos,
@@ -207,8 +174,10 @@ if __name__ == '__main__':
 
     if os.environ['PATH'][1:6] == 'astro':
         _TOP_DIR = '/astro/store/phat/arlewis/'
+        threads = 4
     else:
         _TOP_DIR = '/Users/alexialewis/research/PHAT/'
+        threads = 1
 
     data_loc = os.path.join(_TOP_DIR, 'dustvar')
     filename = os.path.join(data_loc, 'all_runs.h5')
@@ -263,7 +232,7 @@ if __name__ == '__main__':
     ndim = len(first_init)
     labels = ['$\mu_{R_V}$','$\mu_{f_{bump}}$','$\sigma_{R_V}$','$\sigma_{f_{bump}}$', '$\sigma_{R_V, f_{bump}}$']
 
-    sampler, lp, pos, t = model(grid, nwalkers, first_init, run_steps, restart_steps, n_restarts=n_restarts, labels=labels)
+    sampler, lp, pos, t = model(grid, nwalkers, first_init, run_steps, restart_steps, n_restarts=n_restarts, labels=labels, threads=threads)
 
     if write:
         #outfile = os.path.join(data_loc, '/final_sampler_rv_fbump.h5')
