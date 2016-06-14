@@ -205,7 +205,12 @@ if __name__ == '__main__':
     selection = False
     write = False
 
-    data_loc = '/Users/alexialewis/research/PHAT/dustvar'
+    if os.environ['PATH'][1:6] == 'astro':
+        _TOP_DIR = '/astro/store/phat/arlewis/'
+    else:
+        _TOP_DIR = '/Users/alexialewis/research/PHAT/'
+
+    data_loc = os.path.join(_TOP_DIR, 'dustvar')
     filename = os.path.join(data_loc, 'all_runs.h5')
 
     if selection:
