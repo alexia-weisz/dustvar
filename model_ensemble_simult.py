@@ -165,11 +165,29 @@ def plot_triangle(sampler, labels=None, truths=None, ndim=None):
     #lim = [(0.9995 * np.nanmin(sampler.flatchain[:,i]), 1.0005 * np.nanmax(sampler.flatchain[:,i])) for i in range(sampler.flatchain.shape[1])]
     fig = corner.corner(sampler.flatchain[100:,:], truths=truths, labels=labels)#,range=lim)
 
+def write_to_file(outfile, sampler, runtime):
+     #outfile = os.path.join(data_loc, '/final_sampler_rv_fbump.h5')
+    rf = h5py.File(outfile, 'w')
+    g = rf.create_group('results')
+    g.create_dataset('sampler_chain', data=sampler.chain)
+    g.create_dataset('sampler_flatchain', data=sampler.flatchain)
+    g.create_dataset('sampler_lnprob', data=sampler.lnprobability)
+    g.create_dataset('mu_rv', data=np.percentile(sampler.flatchain[:,0], [16, 50, 84]))
+    g.create_dataset('mu_fb', data=np.percentile(sampler.flatchain[:,1], [16, 50, 84]))
+    g.create_dataset('sigma_rv', data=np.percentile(sampler.flatchain[:,2], [16, 50, 84]))
+    g.create_dataset('sigma_fb', data=np.percentile(sampler.flatchain[:,3], [16, 50, 84]))
+    g.create_dataset('sigma_co', data=np.percentile(sampler.flatchain[:,4], [16, 50, 84]))
+    g.create_dataset('run_time', data=runtime)
+    g.create_dataset('autocorr_time', data=sampler.acor)
+    rf.close()
+
+
+
 
 if __name__ == '__main__':
 
     selection = False
-    write = False
+    write = True
 
     if os.environ['PATH'][1:6] == 'astro':
         _TOP_DIR = '/astro/store/phat/arlewis/'
@@ -194,6 +212,7 @@ if __name__ == '__main__':
     #sel = np.where(sfr100[np.isfinite(sfr100)].flatten() > 1e-6)[0]
     sel = np.where(avdav[np.isfinite(avdav)].flatten() > 1.0)[0]
 
+    print "reading in region pdfs..."
     with h5py.File(filename, 'r') as hf:
         if selection:
             nregs = len(sel)
@@ -202,8 +221,8 @@ if __name__ == '__main__':
             nregs = len(hf.keys())
             reg_range = range(nregs)
 
-        nregs = 100
-        reg_range = range(nregs)
+        #nregs = 100
+        #reg_range = range(nregs)
         grid = np.asarray(np.zeros((nregs, nsamples, 2)))
 
         total_samples = (hf.get(hf.keys()[0]))['sampler_flatchain'].shape[0]
@@ -227,34 +246,15 @@ if __name__ == '__main__':
     nwalkers = 64
 
     #initial guess of mu_rv and sigma_rv
-    first_init = [4.5, 0.8, 0.3, 0.3, 0.1]
+    first_init = [3.1, 0.8, 0.3, 0.3, 0.1]
     ndim = len(first_init)
     labels = ['$\mu_{R_V}$','$\mu_{f_{bump}}$','$\sigma_{R_V}$','$\sigma_{f_{bump}}$', '$\sigma_{R_V, f_{bump}}$']
 
+    print "starting mcmc..."
     sampler, lp, pos, t = model(grid, nwalkers, first_init, run_steps, restart_steps, n_restarts=n_restarts, labels=labels, threads=threads)
 
     if write:
-        #outfile = os.path.join(data_loc, '/final_sampler_rv_fbump.h5')
-        rf = h5py.File(outfile, 'w')
-        g = rf.create_group('R_V')
-        g.create_dataset('sampler_chain', data=sampler_rv.chain)
-        g.create_dataset('sampler_flatchain', data=sampler_rv.flatchain)
-        g.create_dataset('sampler_lnprob', data=sampler_rv.lnprobability)
-        g.create_dataset('mu', data=np.percentile(sampler_rv.flatchain[:,0], [16, 50, 84]))
-        g.create_dataset('sigma', data=np.percentile(sampler_rv.flatchain[:,1], [16, 50, 84]))
-        g.create_dataset('run_time', data=t_rv)
-        g.create_dataset('autocorr_time', data=sampler_rv.acor)
-
-        g = rf.create_group('f_bump')
-        g.create_dataset('sampler_chain', data=sampler_fb.chain)
-        g.create_dataset('sampler_flatchain', data=sampler_fb.flatchain)
-        g.create_dataset('sampler_lnprob', data=sampler_fb.lnprobability)
-        g.create_dataset('mu', data=np.percentile(sampler_fb.flatchain[:,0], [16, 50, 84]))
-        g.create_dataset('sigma', data=np.percentile(sampler_fb.flatchain[:,1], [16, 50, 84]))
-        g.create_dataset('run_time', data=t_fb)
-        g.create_dataset('autocorr_time', data=sampler_fb.acor)
-        rf.close()
-
+        write_to_file(outfile, sampler, t)
 
     plot_loc = data_loc + '/plots/'
     plot_triangle(sampler, labels=labels, truths=None, ndim=None)
