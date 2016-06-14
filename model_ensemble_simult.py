@@ -221,10 +221,10 @@ if __name__ == '__main__':
 
 
     # steps to take in the burn in runs, restarts, and final run
-    restart_steps = 500
-    run_steps = 1000
-    n_restarts = 8
-    nwalkers = 32
+    restart_steps = 250
+    run_steps = 500
+    n_restarts = 4
+    nwalkers = 64
 
     #initial guess of mu_rv and sigma_rv
     first_init = [4.5, 0.8, 0.3, 0.3, 0.1]
