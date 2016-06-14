@@ -117,7 +117,6 @@ def model(grid, nwalkers, first_init, run_steps, restart_steps, n_restarts=0, th
     # initialize the first guess with a slight offset for each walker
     pos = initialize(first_init, ndim, nwalkers)
 
-
     t0 = time.time()
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, args=(grid, None),
                                     threads=threads)
@@ -203,8 +202,8 @@ if __name__ == '__main__':
             nregs = len(hf.keys())
             reg_range = range(nregs)
 
-        #nregs = 100
-        #reg_range = range(nregs)
+        nregs = 100
+        reg_range = range(nregs)
         grid = np.asarray(np.zeros((nregs, nsamples, 2)))
 
         total_samples = (hf.get(hf.keys()[0]))['sampler_flatchain'].shape[0]
@@ -257,7 +256,7 @@ if __name__ == '__main__':
         rf.close()
 
 
-    plot_loc = data_loc + 'plots/'
+    plot_loc = data_loc + '/plots/'
     plot_triangle(sampler, labels=labels, truths=None, ndim=None)
     plt.savefig(plot_loc + 'simult_triangle_all.pdf')
     plot_walkers(sampler, nwalkers, ndim, labels=labels)
