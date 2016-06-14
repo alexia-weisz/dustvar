@@ -262,6 +262,6 @@ if __name__ == '__main__':
     plt.savefig(plot_loc + 'simult_triangle_all.pdf')
     plot_walkers(sampler, nwalkers, ndim, labels=labels)
     plt.savefig(plot_loc + 'simult_walkers_all.pdf')
-    plt.show()
+    #plt.show()
 
 
