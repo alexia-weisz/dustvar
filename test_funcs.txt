@@ -1,0 +1,33 @@
+[logsumexp(dot_prod(np.asarray((grid[k,:,0] - mean1, grid[k,:,1] - mean2)), icov, dcov), axis=1) for k in range(grid.shape[0])]
+
+
+def dot_prod(r, icov, dcov):
+    return -0.5 * np.dot(r.T, np.dot(icov, r)) - 0.5 * dcov
+
+
+def lnlike2(theta, grid):
+    mean1, mean2 = theta[0], theta[1]
+    sig1, sig2, sig12 = theta[2], theta[3], theta[4]
+    cov = np.asarray(([sig1**2, sig12], [sig12, sig2**2]))
+    icov = np.linalg.inv(cov)
+    dcov = (np.linalg.slogdet(cov)[1])#np.linalg.det(cov)
+    dp = np.sum([logsumexp(dot_prod(np.asarray((grid[k,:,0] - mean1, grid[k,:,1] - mean2)), icov, dcov), axis=0) for k in range(grid.shape[0])])
+    return dp
+
+
+
+def lnlike(theta, grid):
+    mean1, mean2 = theta[0], theta[1]
+    sig1, sig2, sig12 = theta[2], theta[3], theta[4]
+    cov = np.asarray(([sig1**2, sig12], [sig12, sig2**2]))
+    icov = np.linalg.inv(cov)
+    dcov = (np.linalg.slogdet(cov)[1])#np.linalg.det(cov)
+    rv = grid[:,:,0]
+    fb = grid[:,:,1]
+    dp = 0.
+    for k in range(rv.shape[0]):
+        r = np.asarray((rv[k,:] - mean1, fb[k,:] - mean2))
+        dp += logsumexp(-0.5 * np.dot(r.T, np.dot(icov, r)) - 0.5 * dcov)
+        #dp += -0.5 * np.dot(r.T, np.dot(icov, r)) - 0.5 * np.log(dcov)
+    #set_trace()
+    return dp
