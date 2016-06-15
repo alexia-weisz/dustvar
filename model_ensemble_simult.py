@@ -38,7 +38,7 @@ def lnlike(theta, grid):
 
 
 def lnprior(theta):
-    if 0. < theta[0] < 6. and 0. < theta[1] < 1.5 and 0. < theta[2] < 2.0 and 0. < theta[3] < 2.0 and 0. < theta[4] < 2.0:
+    if 0. < theta[0] < 10. and 0. < theta[1] < 2.5 and 0. < theta[2] < 2.0 and 0. < theta[3] < 2.0 and 0. < theta[4] < 2.0:
         return 0.0
     return -np.inf
 
