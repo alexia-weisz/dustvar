@@ -56,7 +56,7 @@ def lnlike(theta, grid):
 
 
 def lnprior(theta):
-    if 0. < theta[0] < 3.5 and 0. < theta[1] < 2.0 and 0. < theta[2] < 2.0 and 0. < theta[3] < 2.0 and 0. < theta[4] < 2.0:
+    if 0. < theta[0] < 7 and 0. < theta[1] < 2.0 and 0. < theta[2] < 2.0 and 0. < theta[3] < 2.0 and 0. < theta[4] < 2.0:
         return 0.0
     return -np.inf
 
@@ -203,7 +203,7 @@ def write_to_file(outfile, sampler, runtime):
 
 
 if __name__ == '__main__':
-
+    print time.ctime()
     selection = False
     write = False#True
 
@@ -239,8 +239,8 @@ if __name__ == '__main__':
             nregs = len(hf.keys())
             reg_range = range(nregs)
 
-        nregs = 100
-        reg_range = range(nregs)
+        #nregs = 100
+        #reg_range = range(nregs)
         grid = np.asarray(np.zeros((nregs, nsamples, 2)))
 
         total_samples = (hf.get(hf.keys()[0]))['sampler_flatchain'].shape[0]
