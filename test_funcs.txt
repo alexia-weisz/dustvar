@@ -31,3 +31,26 @@ def lnlike(theta, grid):
         #dp += -0.5 * np.dot(r.T, np.dot(icov, r)) - 0.5 * np.log(dcov)
     #set_trace()
     return dp
+
+
+
+def lnlike(theta, grid):
+    mean1, mean2 = theta[0], theta[1]
+    sig1, sig2, sig12 = theta[2], theta[3], theta[4]
+
+    L = np.asarray(([np.exp(sig1), 0], [sig12, np.exp(sig2)]))
+    C = np.dot(L,L.T)
+    #icov = np.linalg.inv(C)  #better to factorize than to invert
+    dcov = np.linalg.det(C)
+
+    dp = 0.
+    for k in range(rv.shape[0]):
+        r = np.asarray((grid[k,:,0] - mean1, grid[k,:,1] - mean2))
+        #dr = np.dot(icov, r)
+	 dr = np.linalg.solve(C, r)
+        ff = np.sum(r * dr, axis=0)
+        dp += logsumexp(-0.5 * ff - 0.5 * dcov)
+    return dp
+
+
+

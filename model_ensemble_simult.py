@@ -10,7 +10,7 @@ import compile_data
 from pdb import set_trace
 
 
-def lnlike(theta, grid):
+def lnlike_old(theta, grid):
     mean1, mean2 = theta[0], theta[1]
     sig1, sig2, sig12 = theta[2], theta[3], theta[4]
     #cov2 = np.asarray(([sig1**2, sig12], [sig12, sig2**2])) #parameterize differently to be positive definite
@@ -27,6 +27,7 @@ def lnlike(theta, grid):
     for k in range(rv.shape[0]):
         r = np.asarray((rv[k,:] - mean1, fb[k,:] - mean2))
         dr = np.dot(icov, r)
+        set_trace()
         ff = np.sum(r * dr, axis=0)
         foo = -0.5 * ff - 0.5 * dcov
         dp += logsumexp(foo)
@@ -37,8 +38,25 @@ def lnlike(theta, grid):
     return dp
 
 
+def lnlike(theta, grid):
+    mean1, mean2 = theta[0], theta[1]
+    sig1, sig2, sig12 = theta[2], theta[3], theta[4]
+
+    ll = np.asarray(([np.exp(sig1), 0], [sig12, np.exp(sig2)]))
+    cov = np.dot(ll, ll.T)
+    dcov = np.linalg.det(cov)
+
+    dp = 0.
+    for k in range(grid.shape[0]):
+        r = np.asarray((grid[k,:,0] - mean1, grid[k,:,1] - mean2))
+        dr = np.linalg.solve(cov, r)
+        ff = np.sum(r * dr, axis=0)
+        dp += logsumexp(-0.5 * ff - 0.5 * dcov)
+    return dp
+
+
 def lnprior(theta):
-    if 0. < theta[0] < 10. and 0. < theta[1] < 2.5 and 0. < theta[2] < 2.0 and 0. < theta[3] < 2.0 and 0. < theta[4] < 2.0:
+    if 0. < theta[0] < 3.5 and 0. < theta[1] < 2.0 and 0. < theta[2] < 2.0 and 0. < theta[3] < 2.0 and 0. < theta[4] < 2.0:
         return 0.0
     return -np.inf
 
@@ -166,7 +184,7 @@ def plot_triangle(sampler, labels=None, truths=None, ndim=None):
     fig = corner.corner(sampler.flatchain[100:,:], truths=truths, labels=labels)#,range=lim)
 
 def write_to_file(outfile, sampler, runtime):
-     #outfile = os.path.join(data_loc, '/final_sampler_rv_fbump.h5')
+    #outfile = os.path.join(data_loc, '/final_sampler_rv_fbump.h5')
     rf = h5py.File(outfile, 'w')
     g = rf.create_group('results')
     g.create_dataset('sampler_chain', data=sampler.chain)
@@ -187,7 +205,7 @@ def write_to_file(outfile, sampler, runtime):
 if __name__ == '__main__':
 
     selection = False
-    write = True
+    write = False#True
 
     if os.environ['PATH'][1:6] == 'astro':
         _TOP_DIR = '/astro/store/phat/arlewis/'
@@ -221,8 +239,8 @@ if __name__ == '__main__':
             nregs = len(hf.keys())
             reg_range = range(nregs)
 
-        #nregs = 100
-        #reg_range = range(nregs)
+        nregs = 100
+        reg_range = range(nregs)
         grid = np.asarray(np.zeros((nregs, nsamples, 2)))
 
         total_samples = (hf.get(hf.keys()[0]))['sampler_flatchain'].shape[0]
@@ -240,10 +258,10 @@ if __name__ == '__main__':
 
 
     # steps to take in the burn in runs, restarts, and final run
-    restart_steps = 250
+    restart_steps = 500
     run_steps = 500
     n_restarts = 4
-    nwalkers = 64
+    nwalkers = 128
 
     #initial guess of mu_rv and sigma_rv
     first_init = [3.1, 0.8, 0.3, 0.3, 0.1]
