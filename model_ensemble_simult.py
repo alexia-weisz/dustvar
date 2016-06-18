@@ -49,6 +49,7 @@ def lnlike(theta, grid):
     dp = 0.
     for k in range(grid.shape[0]):
         r = np.asarray((grid[k,:,0] - mean1, grid[k,:,1] - mean2))
+        set_trace()
         dr = np.linalg.solve(cov, r)
         ff = np.sum(r * dr, axis=0)
         dp += logsumexp(-0.5 * ff - 0.5 * dcov)
