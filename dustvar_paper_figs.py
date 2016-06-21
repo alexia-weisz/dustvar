@@ -116,7 +116,7 @@ def running_median(X, Y, ax, total_bins=9, min=-16.3, max=-13.7, color='r', flux
 
     xx = [bins[j] + delta/2. for j in range(total_bins-1)]
     yy = run_med
-    ax.errorbar(xx, yy, yerr=run_std, marker='o', ms=2, ls='--', color=color, mec=color, lw=1, elinewidth=1, zorder=100)
+    ax.errorbar(xx, yy, yerr=run_std, marker='o', ms=2, ls='--', color=color, mec=color, lw=3, elinewidth=2, zorder=100)
 
 def draw_grid(ax=None):
     if ax is None:
@@ -209,7 +209,7 @@ def plot_extcurve(ax, lw=3, plot_type='color', legend=False, laws=[attenuation.c
     #    cm = plt.get_cmap(plt.cm.viridis)
     #    ax.set_prop_cycle(color=[cm(i) for i in np.linspace(0, 1, n_lines)])
     #else:
-    #    ax.set_prop_cycle(color=colors)
+    ax.set_prop_cycle(color=colors)
 
     av = np.linspace(0, 2.5, 100)
     label = r'{0} $R_V={1}$, $f_{{bump}}={2}$'
@@ -223,6 +223,14 @@ def plot_extcurve(ax, lw=3, plot_type='color', legend=False, laws=[attenuation.c
         ax.legend(loc=6, bbox_to_anchor=(1.05, 0.58), fontsize=12)
 
 
+def get_att(wave, att=attenuation.conroy, rv=3.1, fb=1.0, tau_v=1.0):
+    tau_lambda = att(wave, R_v=rv, f_bump=fb, tau_v=tau_v)
+    A_lambda = np.log10(np.exp(1)) * tau_lambda
+    sel = (wave > 5489) & (wave < 5511)
+    A_V = np.mean(A_lambda[sel])
+    return A_lambda, A_V
+
+
 ## FIGURES ##
 ## ------- ##
 def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs):
@@ -233,9 +241,9 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
     x = otherdata['avdav']
     z = np.log10(otherdata['sSFR'])
 
-    y0 = (fuvdata['magobs'] - nuvdata['magobs']) - (fuvdata['magmodint'] - nuvdata['magmodint'])
-    y1 = np.log10(fuvdata['fluxobs'] / fuvdata['fluxmodint'])
-    y2 = np.log10(nuvdata['fluxobs'] / fuvdata['fluxmodint'])
+    y0 = np.log10(fuvdata['fluxobs'] / fuvdata['fluxmodint'])
+    y1 = np.log10(nuvdata['fluxobs'] / fuvdata['fluxmodint'])
+    y2 = (fuvdata['magobs'] - nuvdata['magobs']) - (fuvdata['magmodint'] - nuvdata['magmodint'])
 
     if sel is not None:
         x, z = x[sel], z[sel]
@@ -245,15 +253,15 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
     this_y0, this_y1, this_y2 = y0.flatten(), y1.flatten(), y2.flatten()
 
     xlim = [-0.05, 1.55]
-    ylim0 = [-3, 3]
+    ylim2 = [-3, 3]
     ylim = [-2.95, 1.2]
     zlim = [-14, -10]
 
-    xlabel = r'$A_V + \frac{1}{2} dA_V$'
-    ylabel0 = (r'$(m_{\textrm{\small FUV}}-m_{\textrm{\small NUV}})_{\textrm{\small obs}} - (m_{\textrm{\small FUV}}-m_{\textrm{\small NUV}})_{\textrm{\small syn,0}}$')
-    ylabel1 = (r'$\log \Bigg($' + fuvfluxobslab + '/' +
+    xlabel = r'$A_{V, \textrm{\small SFH}} + \frac{1}{2} dA_{V, \textrm{\small SFH}}$'
+    ylabel2 = (r'$(m_{\textrm{\small FUV}}-m_{\textrm{\small NUV}})_{\textrm{\small obs}} - (m_{\textrm{\small FUV}}-m_{\textrm{\small NUV}})_{\textrm{\small syn,0}}$')
+    ylabel0 = (r'$\log \Bigg($' + fuvfluxobslab + '/' +
                   fuvfluxmodintlab + '$\Bigg)$')
-    ylabel2 = (r'$\log \Bigg($' + nuvfluxobslab + '/' +
+    ylabel1 = (r'$\log \Bigg($' + nuvfluxobslab + '/' +
                   nuvfluxmodintlab + '$\Bigg)$')
 
     xlabels = [xlabel, xlabel, xlabel]
@@ -279,14 +287,14 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
         zlabel = 'Number of Regions'
         extend = 'max'
 
-    hist_kwargs0 = {'func': func, 'bins': bins, 'xlim': xlim,
-                   'ylim': ylim0, 'cnorm': cnorm}
-    hist_kwargs1 = {'func': func, 'bins': bins, 'xlim': xlim,
+    hist_kwargs01 = {'func': func, 'bins': bins, 'xlim': xlim,
                    'ylim': ylim, 'cnorm': cnorm}
+    hist_kwargs2 = {'func': func, 'bins': bins, 'xlim': xlim,
+                   'ylim': ylim2, 'cnorm': cnorm}
 
-    hist_kwargs = [hist_kwargs0, hist_kwargs1, hist_kwargs1]
+    hist_kwargs = [hist_kwargs01, hist_kwargs01, hist_kwargs2]
     this_y = [this_y0, this_y1, this_y2]
-    xlims, ylims = [xlim, xlim, xlim], [ylim0, ylim, ylim]
+    xlims, ylims = [xlim, xlim, xlim], [ylim, ylim, ylim2]
 
     laws = [attenuation.cardelli, attenuation.calzetti, attenuation.smc]
     plot_laws = [('MW', '3.1', '1.0'), ('Calz', '4.05', '0.0'), ('SMC', '3.1', '0.0')]
@@ -296,8 +304,8 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
     filters = ['galex_fuv', 'galex_nuv']
 
     color = ['Blue', 'Purple', 'darkorange']
-    ptype = ['color', 'flux', 'flux']
-    bands = [None, 'fuv', 'nuv']
+    ptype = ['flux', 'flux', 'color']
+    bands = ['fuv', 'nuv', None]
 
     cmap = plt.cm.Greys_r
     cmap.set_bad('white')
@@ -341,6 +349,128 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
         plt.savefig(plotname, **plot_kwargs)
     else:
         plt.show()
+
+def fig_att_curves(tage=0.0, **kwargs):
+
+    filters = ['galex_fuv', 'galex_nuv', 'wfc3_uvis_f475w', 'wfc3_uvis_f814w']
+    filters = observate.load_filters(filters)
+
+    wave, s = create_spectrum(tage=0.2)
+    tau_lambda_calzetti = attenuation.calzetti(wave, R_v=4.05, tau_v=1.0)
+    tau_lambda_cardelli = attenuation.cardelli(wave, R_v=3.10, tau_v=1.0)
+    tau_lambda_smc = attenuation.smc(wave, tau_v=1.0)
+    A_lambda_calzetti = np.log10(np.exp(1)) * tau_lambda_calzetti
+    A_lambda_cardelli = np.log10(np.exp(1)) * tau_lambda_cardelli
+    A_lambda_smc = np.log10(np.exp(1)) * tau_lambda_smc
+
+    sel = (wave > 5489) & (wave < 5511)
+    A_V_calzetti = np.mean(A_lambda_calzetti[sel])
+    A_V_cardelli = np.mean(A_lambda_cardelli[sel])
+    A_V_smc= np.mean(A_lambda_smc[sel])
+
+    wave_micron = wave / 1e4
+
+    fig = plt.figure(figsize=(8,6))
+    ax = fig.add_subplot(111)
+    ax2 = ax.twinx()
+    ax.set_zorder(ax2.get_zorder()+1) # put ax in front of ax2
+    ax.patch.set_visible(False)
+
+    lw = 5
+    color = 'black'
+    zorder = 100
+    ax.plot(1./wave_micron, A_lambda_cardelli/A_V_cardelli, lw=lw,
+             color=color, ls='-', label='Cardelli', zorder=zorder)
+    ax.plot(1./wave_micron, A_lambda_calzetti/A_V_calzetti, lw=lw,
+             color=color, ls='--', label='Calzetti', zorder=zorder)
+    ax.plot(1./wave_micron, A_lambda_smc/A_V_smc, lw=lw,
+             color=color, ls=':', label='SMC', zorder=zorder)
+
+    textx = [0.78, 0.48, 0.22, 0.07]
+    texty = 0.93
+    colors = ['indigo', 'darkviolet', 'blue', 'red']
+    #cc = [color['color'] for color in list(plt.rcParams['axes.prop_cycle'])]
+    #colors = [cc[5], cc[0], cc[4], cc[7]]
+    labels = [r'\textbf{FUV}', r'\textbf{NUV}', r'\textbf{F475W}', r'\textbf{F814W}']
+    for i in range(len(filters)):
+        xx = 1./(filters[i].wavelength/1e4)
+        yy = filters[i].transmission
+        ax2.plot(xx, yy/np.max(yy), lw=0)#, color=colors[i], label=labels[i])
+        #ax2.fill_between(xx, 0, yy/np.max(yy), lw=0,label=labels[i], alpha=0.2)
+        ax2.fill_between(xx, 0, yy/np.max(yy), lw=0, edgecolor=colors[i],
+                         facecolor=colors[i], label=labels[i], alpha=0.2)
+        ax2.text(textx[i], texty, labels[i], color=colors[i], fontsize=14, transform=ax2.transAxes)
+
+    ax.set_ylabel(r'$A_\lambda / A_V$', fontsize=22)
+    ax.set_xlabel(r'1/$\lambda$ [$\mu \textrm{m}^{-1}$]', fontsize=22)
+    ax2.set_ylabel('Filter Transmission', fontsize=22, labelpad=15)
+    ax.set_xlim(0.2, 8.2)
+    ax.set_ylim(0, 8)
+    ax2.set_ylim(0.05, 1.1)
+
+    for a in [ax, ax2]:
+        a.tick_params(axis='both', labelsize=18)
+
+    plotname = os.path.join(_PLOT_DIR, 'avdav_fuvnuv_compare.' + plot_kwargs['format'])
+    print plotname
+    if kwargs['save']:
+        plt.savefig(plotname, **plot_kwargs)
+    else:
+        plt.show()
+
+
+def fig_compare_rv_fb():
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5), sharex=True, sharey=True)
+
+    wave, s = create_spectrum(tage=0.2)
+    wave_micron = wave / 1e4
+
+    A_lambda_conroy, A_V_conroy = get_att(wave, att=attenuation.conroy, rv=3.1, fb=1.0, tau_v=1.0)
+
+    fbrange = np.arange(0.0, 2.2, 0.2)
+    rvrange = np.arange(2.0, 5.3, 0.3)
+
+
+    lw = 2
+    color = 'black'
+    zorder = 100
+
+    n = len(fbrange)
+    color_map_cycle = [plt.get_cmap('inferno')(1. * i/n) for i in range(n)]
+    ax1.set_prop_cycle(cycler('color', color_map_cycle))
+    ax2.set_prop_cycle(cycler('color', color_map_cycle))
+
+    for i in range(n):
+        rv, fb = rvrange[i], fbrange[i]
+        lab1 = str(rv)
+        lab2 = str(fb)
+        A_lambda1, x = get_att(wave, rv=rv)
+        A_lambda2, x = get_att(wave, fb=fb)
+
+        ax1.plot(1./wave_micron, A_lambda1/A_V_conroy, lw=2,label=lab1)
+        ax2.plot(1./wave_micron, A_lambda2/A_V_conroy, lw=2,label=lab2)
+
+
+    labels = [r'$R_V$', r'$f_\textrm{bump}$']
+    for i, ax in enumerate([ax1, ax2]):
+        ax.grid()
+        legend = ax.legend(loc='upper left', fontsize=12,frameon=False, title=labels[i])
+        ax.tick_params(axis='both', labelsize=18)
+        plt.setp(legend.get_title(),fontsize=16)
+
+    ax1.set_ylabel(r'$A_\lambda / A_V$', fontsize=22)
+    ax1.set_xlabel(r'1/$\lambda$ [$\mu \textrm{m}^{-1}$]', fontsize=22)
+    ax1.set_xlim(0.2, 8.2)
+    ax1.set_ylim(0, 8)
+
+
+    plotname = os.path.join(_PLOT_DIR, 'rv_fb_variation.pdf')
+    print plotname
+    if kwargs['save']:
+        plt.savefig(plotname, **plot_kwargs)
+    else:
+        plt.show()
+
 
 def fig_maps_uvdust(fuvdata, nuvdata, **kwargs):
     """
@@ -452,73 +582,7 @@ def fig_auv_av(fuvdata, nuvdata, otherdata, **kwargs):
     else:
         plt.show()
 
-def fig_att_curves(tage=0.0, **kwargs):
 
-    filters = ['galex_fuv', 'galex_nuv', 'wfc3_uvis_f475w', 'wfc3_uvis_f814w']
-    filters = observate.load_filters(filters)
-
-    wave, s = create_spectrum(tage=0.2)
-    tau_lambda_calzetti = attenuation.calzetti(wave, R_v=4.05, tau_v=1.0)
-    tau_lambda_cardelli = attenuation.cardelli(wave, R_v=3.10, tau_v=1.0)
-    tau_lambda_smc = attenuation.smc(wave, tau_v=1.0)
-    A_lambda_calzetti = np.log10(np.exp(1)) * tau_lambda_calzetti
-    A_lambda_cardelli = np.log10(np.exp(1)) * tau_lambda_cardelli
-    A_lambda_smc = np.log10(np.exp(1)) * tau_lambda_smc
-
-    sel = (wave > 5489) & (wave < 5511)
-    A_V_calzetti = np.mean(A_lambda_calzetti[sel])
-    A_V_cardelli = np.mean(A_lambda_cardelli[sel])
-    A_V_smc= np.mean(A_lambda_smc[sel])
-
-    wave_micron = wave / 1e4
-
-    fig = plt.figure(figsize=(8,6))
-    ax = fig.add_subplot(111)
-    ax2 = ax.twinx()
-    ax.set_zorder(ax2.get_zorder()+1) # put ax in front of ax2
-    ax.patch.set_visible(False)
-
-    lw = 5
-    color = 'black'
-    zorder = 100
-    ax.plot(1./wave_micron, A_lambda_cardelli/A_V_cardelli, lw=lw,
-             color=color, ls='-', label='Cardelli', zorder=zorder)
-    ax.plot(1./wave_micron, A_lambda_calzetti/A_V_calzetti, lw=lw,
-             color=color, ls='--', label='Calzetti', zorder=zorder)
-    ax.plot(1./wave_micron, A_lambda_smc/A_V_smc, lw=lw,
-             color=color, ls=':', label='SMC', zorder=zorder)
-
-    textx = [0.78, 0.48, 0.22, 0.07]
-    texty = 0.93
-    colors = ['indigo', 'darkviolet', 'blue', 'red']
-    #cc = [color['color'] for color in list(plt.rcParams['axes.prop_cycle'])]
-    #colors = [cc[5], cc[0], cc[4], cc[7]]
-    labels = [r'\textbf{FUV}', r'\textbf{NUV}', r'\textbf{F475W}', r'\textbf{F814W}']
-    for i in range(len(filters)):
-        xx = 1./(filters[i].wavelength/1e4)
-        yy = filters[i].transmission
-        ax2.plot(xx, yy/np.max(yy), lw=0)#, color=colors[i], label=labels[i])
-        #ax2.fill_between(xx, 0, yy/np.max(yy), lw=0,label=labels[i], alpha=0.2)
-        ax2.fill_between(xx, 0, yy/np.max(yy), lw=0, edgecolor=colors[i],
-                         facecolor=colors[i], label=labels[i], alpha=0.2)
-        ax2.text(textx[i], texty, labels[i], color=colors[i], fontsize=14, transform=ax2.transAxes)
-
-    ax.set_ylabel(r'$A_\lambda / A_V$', fontsize=22)
-    ax.set_xlabel(r'1/$\lambda$ [$\mu \textrm{m}^{-1}$]', fontsize=22)
-    ax2.set_ylabel('Filter Transmission', fontsize=22, labelpad=15)
-    ax.set_xlim(0.2, 8.2)
-    ax.set_ylim(0, 8)
-    ax2.set_ylim(0.05, 1.1)
-
-    for a in [ax, ax2]:
-        a.tick_params(axis='both', labelsize=18)
-
-    plotname = os.path.join(_PLOT_DIR, 'avdav_fuvnuv_compare.' + plot_kwargs['format'])
-    print plotname
-    if kwargs['save']:
-        plt.savefig(plotname, **plot_kwargs)
-    else:
-        plt.show()
 
 
 
@@ -528,7 +592,6 @@ def cardelli_curves(tage=0.0, **kwargs):
     filters = observate.load_filters(filters)
     fcolors = ['indigo', 'darkviolet']
     flabels = [r'\textbf{FUV}', r'\textbf{NUV}']
-
 
     wave, s = create_spectrum(tage=0.2)
     tau_lambda_cardelli = attenuation.cardelli(wave, R_v=3.10, tau_v=1.0)
@@ -822,13 +885,14 @@ if __name__ == '__main__':
 
     ## make figures ##
     ## ------------ ##
-
-    #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)
+    #fig_att_curves(tage=0.0, **kwargs)   ##fig1
+    #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)  ##fig2
+    fig_compare_rv_fb()
 
     sfrsel = otherdata['sfr100'] > 1e-5
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, sel=sfrsel, **kwargs)
-    #fig_att_curves(tage=0.0, **kwargs)
+
     #cardelli_curves(tage=0.0, **kwargs)
     #conroy_curves(tage=0.0, **kwargs)
-    m31_dustlaw_on_data(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
+    #m31_dustlaw_on_data(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
 
