@@ -259,13 +259,13 @@ if __name__ == '__main__':
 
 
     # steps to take in the burn in runs, restarts, and final run
-    restart_steps = 500
+    restart_steps = 250
     run_steps = 500
-    n_restarts = 4
-    nwalkers = 128
+    n_restarts = 8
+    nwalkers = 64
 
     #initial guess of mu_rv and sigma_rv
-    first_init = [3.1, 0.8, 0.3, 0.3, 0.1]
+    first_init = [3.1, 0.8, 0.3, 0.3, 0.3]
     ndim = len(first_init)
     labels = ['$\mu_{R_V}$','$\mu_{f_{bump}}$','$\sigma_{R_V}$','$\sigma_{f_{bump}}$', '$\sigma_{R_V, f_{bump}}$']
 
