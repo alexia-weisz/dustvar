@@ -9,6 +9,7 @@ from sedpy import attenuation, observate
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib.ticker import ScalarFormatter, LogFormatter
 from cycler import cycler
 
@@ -124,8 +125,6 @@ def draw_grid(ax=None):
     else:
         ax.grid(color='k', linestyle='-', linewidth=0.5, alpha=0.1, zorder=500)
 
-
-
 def create_spectrum(tage=1.0):
     """
     Create a spectrum at a given age via fsps.StelalarPopulation().get_spectrum
@@ -231,6 +230,67 @@ def get_att(wave, att=attenuation.conroy, rv=3.1, fb=1.0, tau_v=1.0):
     return A_lambda, A_V
 
 
+def make_maps(var1, var2, var1lims=[0,10], var2lims=[0,1.5], cmap1=plt.cm.inferno, cmap2=plt.cm.inferno, extend='neither', save=False, plotname=None):
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 4.5))
+    plt.subplots_adjust(hspace=0.03, left=0.05, right=0.9, bottom=0.05, top=0.95)
+    axlist = [ax1, ax2]
+    for ax in axlist:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+
+    if var1lims is None:
+        var1min, var1max = np.nanmin(var1), np.nanmax(var1)
+        var2min, var2max = np.nanmin(var2), np.nanmax(var2)
+    else:
+        var1min, var1max = var1lims[0], var1lims[1]
+        var2min, var2max = var2lims[0], var2lims[1]
+    dx1 = 0.05 * (var1max - var1min)
+    dx2 = 0.05 * (var2max - var2min)
+    cnorm1 = mcolors.Normalize(vmin=var1min-dx1, vmax=var1max+dx1)
+    cnorm2 = mcolors.Normalize(vmin=var2min-dx2, vmax=var2max+dx2)
+
+    cmap1.set_bad('0.65')
+    cmap2.set_bad('0.65')
+    if np.nanmin(var1) == -99.:
+        cmap1 = adjust_cmap(cmap1)
+    if np.nanmin(var2) == -99.:
+        cmap2 = adjust_cmap(cmap2)
+
+    im1 = ax1.imshow(var1[::-1].T, cmap=cmap1, norm=cnorm1)
+    im2 = ax2.imshow(var2[::-1].T, cmap=cmap2, norm=cnorm2)
+
+    ticks1 = np.linspace(var1min, var1max, 6)
+    ticks2 = np.linspace(var2min, var2max, 6)
+
+    pos1 = ax1.get_position()
+    pos2 = ax2.get_position()
+
+    divider1 = make_axes_locatable(ax1)
+    cbax1 = divider1.append_axes('right', size="3%", pad=0.05)
+    divider2 = make_axes_locatable(ax2)
+    cbax2 = divider2.append_axes('right', size="3%", pad=0.05)
+
+    ims = [im1, im2]
+    cbax = [cbax1, cbax2]
+    ticks = [ticks1, ticks2]
+    labels = [r'$\sigma_{R_V} / R_V$', r'$\sigma_{f_{bump}} / f_{bump}$']
+
+    for i in range(len(axlist)):
+        cb = fig.colorbar(ims[i], cax=cbax[i], orientation='vertical', ticks=ticks[i], drawedges=False, extend=extend)
+        #cb.ax.xaxis.set_ticks_position('right')
+        cb.ax.tick_params(labelsize=12)
+        cb.set_label(labels[i], size=15, labelpad=5)
+
+    if save:
+        plt.savefig(plotname)
+    else:
+        plt.show()
+
+
+
+
 ## FIGURES ##
 ## ------- ##
 def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs):
@@ -257,7 +317,8 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
     ylim = [-2.95, 1.2]
     zlim = [-14, -10]
 
-    xlabel = r'$A_{V, \textrm{\small SFH}} + \frac{1}{2} dA_{V, \textrm{\small SFH}}$'
+    #xlabel = r'$A_{V, \textrm{\small SFH}} + \frac{1}{2} dA_{V, \textrm{\small SFH}}$'
+    xlabel = r'$\widetilde{A_V}$'
     ylabel2 = (r'$(m_{\textrm{\small FUV}}-m_{\textrm{\small NUV}})_{\textrm{\small obs}} - (m_{\textrm{\small FUV}}-m_{\textrm{\small NUV}})_{\textrm{\small syn,0}}$')
     ylabel0 = (r'$\log \Bigg($' + fuvfluxobslab + '/' +
                   fuvfluxmodintlab + '$\Bigg)$')
@@ -306,6 +367,7 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
     color = ['Blue', 'Purple', 'darkorange']
     ptype = ['flux', 'flux', 'color']
     bands = ['fuv', 'nuv', None]
+    lns = ['Cardelli', 'Calzetti', 'SMC']
 
     cmap = plt.cm.Greys_r
     cmap.set_bad('white')
@@ -323,6 +385,11 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
         med_dust = running_median(this_x[np.isfinite(this_x)], this_y[i][np.isfinite(this_y[i])], ax_list[i], total_bins=8, min=0.2, max=1.5)
 
         plot_extcurve(ax_list[i], plot_type=ptype[i], laws=laws, lawnames=lawnames, filters=filters, plot_laws=plot_laws, Rvs=Rvs, bumps=bumps, lw=4, colors=color, band=bands[i])
+
+    ax0.text(0.75, 0.9, r'\textbf{FUV}', transform=ax0.transAxes, fontsize=16)
+    ax1.text(0.75, 0.9, r'\textbf{NUV}', transform=ax1.transAxes, fontsize=16)
+    handles, labels = ax2.get_legend_handles_labels()
+    ax2.legend(handles, lns, loc='lower right', frameon=False)
 
     for i, ax in enumerate(ax_list):
         draw_grid(ax=ax)
@@ -472,6 +539,140 @@ def fig_compare_rv_fb():
         plt.show()
 
 
+def fig_sigma_param_distributions(otherdata):
+    import h5py
+    hf_file = os.path.join(_WORK_DIR, 'all_runs.h5')
+    hf = h5py.File(hf_file, 'r')
+
+    nregs = len(hf.keys())
+    reg_range = range(nregs)
+    nsamples = hf.get(hf.keys()[0])['sampler_chain'].shape[1]
+    grid = np.asarray(np.zeros((nregs, 4)))
+    for i, reg in enumerate(reg_range):
+        group = hf.get(hf.keys()[reg])
+        grid[i,0] = np.median(np.asarray(group['sampler_flatchain'][:,0]))
+        grid[i,1] = np.std(np.asarray(group['sampler_flatchain'][:,0]))
+        grid[i,2] = np.median(np.asarray(group['sampler_flatchain'][:,1]))
+        grid[i,3] = np.std(np.asarray(group['sampler_flatchain'][:,1]))
+    hf.close()
+
+
+    sfr100 = otherdata['sfr100']
+    shape = sfr100.shape
+    sfr100flat = sfr100.flatten()
+    sel = np.isfinite(sfr100flat)
+    sel2 = np.isfinite(sfr100)
+
+
+    rv_array = np.zeros(shape).flatten()
+    sig_rv_array = np.zeros(shape).flatten()
+    fb_array = np.zeros(shape).flatten()
+    sig_fb_array = np.zeros(shape).flatten()
+
+    rv_array[sel] = grid[:,0]
+    sig_rv_array[sel] = grid[:,1]
+    fb_array[sel] = grid[:,2]
+    sig_fb_array[sel] = grid[:,3]
+    rv_array[~sel] = np.nan
+    fb_array[~sel] = np.nan
+    sig_rv_array[~sel] = np.nan
+    sig_fb_array[~sel] = np.nan
+
+    rv = rv_array.reshape(shape)
+    fb = fb_array.reshape(shape)
+    sig_rv = sig_rv_array.reshape(shape)
+    sig_fb = sig_fb_array.reshape(shape)
+
+    x1 = sig_rv / rv
+    x2 = sig_fb / fb
+
+    x1[~sel2] = np.nan
+    x2[~sel2] = np.nan
+
+    plotname = os.path.join(_PLOT_DIR, 'rv_fbump_sigma_distributions')
+    #make_maps(x1, x2, var1lims=[0.05, 0.5], var2lims=[0.2, 1.1], cmap1=plt.cm.inferno, cmap2=plt.cm.inferno, extend='both',save=False, plotname=None)
+
+    save = False
+
+    var1, var2 = x2, x2
+    var1lims=[0.05, 0.5]
+    var2lims=[0.2, 1.1]
+    extend = 'both'
+
+    fig = plt.figure()
+    ax1 = plt.subplot2grid((2,3), (0,0))
+    ax2 = plt.subplot2grid((2,3), (0,1), colspan=2)
+    ax3 = plt.subplot2grid((2,3), (1, 0))
+    ax4 = plt.subplot2grid((2,3), (1, 1), colspan=2)
+
+    plt.subplots_adjust(hspace=0.03, left=0.05, right=0.9, bottom=0.05, top=0.95)
+    axlist = [ax2, ax4]
+    for ax in axlist:
+        ax.set_xticks([])
+        ax.set_yticks([])
+        ax.set_xticklabels([])
+        ax.set_yticklabels([])
+
+    if var1lims is None:
+        var1min, var1max = np.nanmin(var1), np.nanmax(var1)
+        var2min, var2max = np.nanmin(var2), np.nanmax(var2)
+    else:
+        var1min, var1max = var1lims[0], var1lims[1]
+        var2min, var2max = var2lims[0], var2lims[1]
+
+    dx1 = 0.05 * (var1max - var1min)
+    dx2 = 0.05 * (var2max - var2min)
+    cnorm1 = mcolors.Normalize(vmin=var1min-dx1, vmax=var1max+dx1)
+    cnorm2 = mcolors.Normalize(vmin=var2min-dx2, vmax=var2max+dx2)
+
+    cmap1, cmap2 = plt.cm.inferno, plt.cm.inferno
+    cmap1.set_bad('0.65')
+    cmap2.set_bad('0.65')
+    if np.nanmin(var1) == -99.:
+        cmap1 = adjust_cmap(cmap1)
+    if np.nanmin(var2) == -99.:
+        cmap2 = adjust_cmap(cmap2)
+
+
+    hist1 = ax1.hist(x1[np.isfinite(x1)], bins=50)
+    hist2 = ax3.hist(x2[np.isfinite(x2)], bins=50)
+
+    im1 = ax2.imshow(var1[::-1].T, cmap=cmap1, norm=cnorm1)
+    im2 = ax4.imshow(var2[::-1].T, cmap=cmap2, norm=cnorm2)
+
+    ticks1 = np.linspace(var1min, var1max, 6)
+    ticks2 = np.linspace(var2min, var2max, 6)
+
+    pos1 = ax1.get_position()
+    pos2 = ax2.get_position()
+
+    divider1 = make_axes_locatable(ax2)
+    cbax1 = divider1.append_axes('right', size="3%", pad=0.05)
+    divider2 = make_axes_locatable(ax4)
+    cbax2 = divider2.append_axes('right', size="3%", pad=0.05)
+
+    ims = [im1, im2]
+    cbax = [cbax1, cbax2]
+    ticks = [ticks1, ticks2]
+    labels = [r'$\sigma_{R_V} / R_V$', r'$\sigma_{f_{bump}} / f_{bump}$']
+
+    for i in range(len(cbax)):
+        cb = fig.colorbar(ims[i], cax=cbax[i], orientation='vertical', ticks=ticks[i], drawedges=False, extend=extend)
+        #cb.ax.xaxis.set_ticks_position('right')
+        cb.ax.tick_params(labelsize=12)
+        cb.set_label(labels[i], size=15, labelpad=5)
+
+    if save:
+        plt.savefig(plotname)
+    else:
+        plt.show()
+
+
+
+
+
+
+
 def fig_maps_uvdust(fuvdata, nuvdata, **kwargs):
     """
     Plot maps of the UV dust.
@@ -581,9 +782,6 @@ def fig_auv_av(fuvdata, nuvdata, otherdata, **kwargs):
         plt.savefig(plotname + plot_kwargs['format'], **plot_kwargs)
     else:
         plt.show()
-
-
-
 
 
 def cardelli_curves(tage=0.0, **kwargs):
@@ -887,7 +1085,9 @@ if __name__ == '__main__':
     ## ------------ ##
     #fig_att_curves(tage=0.0, **kwargs)   ##fig1
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)  ##fig2
-    fig_compare_rv_fb()
+    #fig_compare_rv_fb()  ## fig3
+    fig_sigma_param_distributions(otherdata)
+
 
     sfrsel = otherdata['sfr100'] > 1e-5
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, sel=sfrsel, **kwargs)
