@@ -594,18 +594,18 @@ def fig_sigma_param_distributions(otherdata):
 
     save = False
 
-    var1, var2 = x2, x2
+    var1, var2 = x1, x2
     var1lims=[0.05, 0.5]
     var2lims=[0.2, 1.1]
     extend = 'both'
 
-    fig = plt.figure()
+    fig = plt.figure(figsize=(8,4))
     ax1 = plt.subplot2grid((2,3), (0,0))
     ax2 = plt.subplot2grid((2,3), (0,1), colspan=2)
     ax3 = plt.subplot2grid((2,3), (1, 0))
     ax4 = plt.subplot2grid((2,3), (1, 1), colspan=2)
 
-    plt.subplots_adjust(hspace=0.03, left=0.05, right=0.9, bottom=0.05, top=0.95)
+    #plt.subplots_adjust(hspace=0.03, left=0.05, right=0.9, bottom=0.05, top=0.95)
     axlist = [ax2, ax4]
     for ax in axlist:
         ax.set_xticks([])
@@ -661,6 +661,10 @@ def fig_sigma_param_distributions(otherdata):
         #cb.ax.xaxis.set_ticks_position('right')
         cb.ax.tick_params(labelsize=12)
         cb.set_label(labels[i], size=15, labelpad=5)
+
+    for i, ax in enumerate([ax1, ax3]):
+        ax.tick_params(axis='both', fontsize=12)
+        ax.set_xlabel(labels[i], fontsize=14)
 
     if save:
         plt.savefig(plotname)
