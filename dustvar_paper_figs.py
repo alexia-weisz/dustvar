@@ -539,7 +539,7 @@ def fig_compare_rv_fb():
         plt.show()
 
 
-def fig_sigma_param_distributions(otherdata):
+def fig_sigma_param_distributions(otherdata, **kwargs):
     import h5py
     hf_file = os.path.join(_WORK_DIR, 'all_runs.h5')
     hf = h5py.File(hf_file, 'r')
@@ -592,14 +592,12 @@ def fig_sigma_param_distributions(otherdata):
     plotname = os.path.join(_PLOT_DIR, 'rv_fbump_sigma_distributions')
     #make_maps(x1, x2, var1lims=[0.05, 0.5], var2lims=[0.2, 1.1], cmap1=plt.cm.inferno, cmap2=plt.cm.inferno, extend='both',save=False, plotname=None)
 
-    save = False
-
     var1, var2 = x1, x2
     var1lims=[0.05, 0.5]
     var2lims=[0.2, 1.1]
     extend = 'both'
 
-    fig = plt.figure(figsize=(8,4))
+    fig = plt.figure(figsize=(7,4))
     ax1 = plt.subplot2grid((2,3), (0,0))
     ax2 = plt.subplot2grid((2,3), (0,1), colspan=2)
     ax3 = plt.subplot2grid((2,3), (1, 0))
@@ -663,10 +661,11 @@ def fig_sigma_param_distributions(otherdata):
         cb.set_label(labels[i], size=15, labelpad=5)
 
     for i, ax in enumerate([ax1, ax3]):
-        ax.tick_params(axis='both', fontsize=12)
+        ax.tick_params(axis='both', labelsize=11)
         ax.set_xlabel(labels[i], fontsize=14)
 
-    if save:
+    plt.subplots_adjust(hspace=0.4, wspace=0.03, left=0.1, right=0.92, top=0.92)
+    if kwargs['save']:
         plt.savefig(plotname)
     else:
         plt.show()
@@ -1090,7 +1089,7 @@ if __name__ == '__main__':
     #fig_att_curves(tage=0.0, **kwargs)   ##fig1
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)  ##fig2
     #fig_compare_rv_fb()  ## fig3
-    fig_sigma_param_distributions(otherdata)
+    fig_sigma_param_distributions(otherdata, **kwargs)
 
 
     sfrsel = otherdata['sfr100'] > 1e-5
