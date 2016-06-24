@@ -11,7 +11,8 @@ import matplotlib.colors as mcolors
 
 from sedpy import attenuation, observate
 import compile_data
-import bursty_sfh
+#import bursty_sfh
+from dust import redden
 
 from joblib import Parallel, delayed
 

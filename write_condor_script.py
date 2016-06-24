@@ -18,7 +18,7 @@ f.write('Initialdir = ' + run_loc + ' \n')
 f.write(' \n')
 
 
-finite_reg_num = 10124
+finite_reg_num = 10#124
 count = 0
 for j in range(0, finite_reg_num):
     region = str(j+1).zfill(5)
@@ -29,7 +29,7 @@ for j in range(0, finite_reg_num):
 
     f.write('Arguments = ' + run + ' \n')
     #f.write('Output = ' + out + '\n')
-    #f.write('Log = ' + scrnfile + '\n')
+    f.write('Log = ' + scrnfile + '\n')
     f.write('Queue \n')
     f.write(' \n')
     count += 1
