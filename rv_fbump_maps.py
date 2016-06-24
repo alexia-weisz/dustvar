@@ -7,7 +7,8 @@ import matplotlib.colors as mcolors
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from pdb import set_trace
 import copy
-#import seaborn as sns
+import seaborn as sns
+from scipy.stats import binned_statistic_2d
 
 def gather_grid(infile):
     with h5py.File(infile, 'r') as hf:
@@ -27,7 +28,31 @@ def adjust_cmap(cmap):
     return cmap
 
 
-def make_maps(rv, fb, rvlims=[0,10], fblims=[0,1.5], cmap1=plt.cm.inferno, cmap2=plt.cm.inferno, save=False, plotname=None):
+def make_2dhist_func(ax, x, y, z, func='median', bins=75, xlim=None, ylim=None,   vmin=0, vmax=1.5, origin='lower', aspect='auto', cnorm=None, cmap=plt.cm.Blues, interpolation='nearest'):
+    """
+    Make a 2d histogram binned along x and y colored with values in z undergone with
+    func.
+    Similar to histogram2d except allows for more than number counts to be in the
+    histogram.
+    """
+    kwargs = {'statistic': func, 'bins': bins}
+    if xlim is not None and ylim is not None:
+        kwargs['range'] = [xlim, ylim]
+
+    h, xe, ye, binnum = binned_statistic_2d(x, y, z, **kwargs)
+
+    if ax is None:
+        return h, xe, ye, binnum
+
+    extent = [xe[0], xe[-1], ye[0], ye[-1]]
+    if cnorm is None:
+        cnorm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    im = ax.imshow(h.T, cmap=cmap, interpolation=interpolation, norm=cnorm,
+                   aspect=aspect, extent=extent, origin='lower')
+    return im, cnorm, [h, xe, ye, binnum]
+
+def make_maps(rv, fb, rvlims=[0,10], fblims=[0,1.5], cmap1=plt.cm.inferno, cmap2=plt.cm.inferno, save=False, plotname=None, labels=None):
+
     fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(7, 4.5))
     plt.subplots_adjust(hspace=0.03, left=0.05, right=0.9, bottom=0.05, top=0.95)
     axlist = [ax1, ax2]
@@ -68,7 +93,8 @@ def make_maps(rv, fb, rvlims=[0,10], fblims=[0,1.5], cmap1=plt.cm.inferno, cmap2
     ims = [im1, im2]
     cbax = [cbax1, cbax2]
     ticks = [ticks1, ticks2]
-    labels = [r'$\Delta R_V$', r'$\Delta f_{bump}$']
+    if labels is None:
+        labels = [r'$\Delta R_V$', r'$\Delta f_{bump}$']
 
     for i in range(len(axlist)):
         cb = fig.colorbar(ims[i], cax=cbax[i], orientation='vertical', ticks=ticks[i], drawedges=False)
@@ -82,16 +108,21 @@ def make_maps(rv, fb, rvlims=[0,10], fblims=[0,1.5], cmap1=plt.cm.inferno, cmap2
         plt.show()
 
 
-def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.Blues, cmap2=plt.cm.Reds, save=False):
+def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.Blues, cmap2=plt.cm.Reds, save=True, cut=True):
     sfrsel = other['sfr100'] < 1e-5
     new_rv, new_fb = copy.copy(rv), copy.copy(fb)
-    #new_rv[sfrsel] = -99.
-    #new_fb[sfrsel] = -99
-    if save:
-        plotname = os.path.join(data_loc,'plots/rv_fbump_maps_nocut.pdf')
-    else:
-        plotname = None
-    make_maps(new_rv, new_fb, rvlims=[2, 5], fblims=[0.4, 1.3], cmap1=cmap1, cmap2=cmap2, save=save, plotname=plotname)
+    if cut:
+        new_rv[sfrsel] = -99.
+        new_fb[sfrsel] = -99
+    xlabel = r'$\langle R_V \rangle$'
+    ylabel = r'$\langle f_{\rm bump} \rangle$'
+    labels = [r'$\langle R_V \rangle$', r'$\langle f_{\rm bump} \rangle$']
+
+    plotname = os.path.join(data_loc,'plots/rv_fbump_maps_nocut.pdf')
+    if cut:
+        plotname = os.path.join(data_loc,'plots/rv_fbump_maps_sfrcut_1e-5.pdf')
+    print plotname
+    make_maps(new_rv, new_fb, rvlims=[2, 5], fblims=[0.4, 1.3], cmap1=cmap1, cmap2=cmap2, save=save, plotname=plotname, labels=labels)
 
 
 def map2(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.RdBu, cmap2=plt.cm.RdBu, save=False):
@@ -113,50 +144,81 @@ def map2(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cma
 
 def sfr_rv_fbump(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap=plt.cm.inferno):
     sns.reset_orig()
-    from dustvar_paper_figs import make_2dhist_func
-    sfr = other['sfr100'][np.isfinite(other['sfr100'])]
-    x = rv[np.isfinite(rv)].flatten()
-    y = np.log10(sfr.flatten())
-    z = fb[np.isfinite(fb)].flatten()
-    xlim = [0, 10]
-    ylim = [-10, -3]
-    zlim = [0.2, 1.2]
-    zticks = np.linspace(zlim[0], zlim[1], 6)
 
-    bins=75
+    sfr = other['sfr100'][np.isfinite(other['sfr100'])]
+    av = other['avdav'][np.isfinite(other['avdav'])]
+    x = rv[np.isfinite(rv)].flatten()
+    y = fb[np.isfinite(fb)].flatten()
+    z1 = np.log10(sfr.flatten())
+    z2 = av
+    xlim = [0, 6]
+    ylim = [0.2, 1.2]
+    zlim1 = [-7, -3.5]
+    zlim2 = [0, 1.5]
+    zticks1 = np.linspace(zlim1[0], zlim1[1], 6)
+    zticks2 = np.linspace(zlim2[0], zlim2[1], 6)
+
+    bins=30
     func = 'median'
-    cnorm = mcolors.Normalize(vmin=zlim[0], vmax=zlim[-1])
+    cnorm1 = mcolors.Normalize(vmin=zlim1[0], vmax=zlim1[-1])
+    cnorm2 = mcolors.Normalize(vmin=zlim2[0], vmax=zlim2[-1])
     fmt = None
-    xlabel = '$R_V$'
-    ylabel = '$\log$ SFR \Big[M$_\odot$ yr$^{-1}$\Big]'
-    zlabel = r'$f_{\rm bump}$'
+    xlabel = r'$\langle R_V \rangle$'
+    ylabel = r'$\langle f_{\rm bump} \rangle$'
+    zlabel1 = '$\log$ SFR \Big[M$_\odot$ yr$^{-1}$\Big]'
+    zlabel2 = '$\widetilde{A_V}$'
     extend = 'neither'
 
     cmap = plt.cm.inferno
 
     hist_kwargs = {'func': func, 'bins': bins, 'xlim': xlim,
-                   'ylim': ylim, 'cnorm': cnorm, 'cmap': cmap}
+                   'ylim': ylim, 'cmap': cmap}
+    hist_kwargs2 = {'func': 'count', 'bins': bins, 'xlim': xlim,
+                   'ylim': ylim, 'cmap': cmap}
 
-    fig = plt.figure(figsize=(7,6))
-    ax = fig.add_subplot(111)
-    im, cnorm, bindata = make_2dhist_func(ax, x, y, z, **hist_kwargs)
+    sel = x < 6
 
-    divider = make_axes_locatable(ax)
-    cbax = divider.append_axes('right', size="5%", pad=0.05)
-    cb = fig.colorbar(im, cax=cbax, norm=cnorm, orientation='vertical', ticks=zticks, extend='both')
-    #cb.ax.xaxis.set_ticks_position('right')
-    cb.ax.tick_params(labelsize=14)
-    cb.set_label(zlabel, size=18, labelpad=5)
-    cb.set_clim(vmin=zlim[0], vmax=zlim[1])
+    counts1, xbins1, ybins1, bn = make_2dhist_func(None, x[sel], y[sel], z1[sel], cnorm=cnorm1, **hist_kwargs2)
+    counts2, xbins2, ybins2, bn = make_2dhist_func(None, x[sel], y[sel], z2[sel], cnorm=cnorm2, **hist_kwargs2)
 
-    ax.grid()
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.tick_params(axis='both', labelsize=16)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7,4), sharex=True, sharey=True)
 
-    plotname = os.path.join(data_loc, 'plots/sfr_rv_fbump.pdf')
+    im1, cnorm1, bindata1 = make_2dhist_func(ax1, x[sel], y[sel], z1[sel], cnorm=cnorm1, **hist_kwargs)
+    im2, cnorm2, bindata2 = make_2dhist_func(ax2, x[sel], y[sel], z2[sel], cnorm=cnorm2, **hist_kwargs)
+
+    levels = [5, 15, 30]
+    lw = 1
+    ls = 'solid'
+    color = '#00D8FF'
+    ax1.contour(counts1.T, levels, linewidths=lw, colors=color, linestyles=ls, extent=[xbins1.min(),xbins1.max(),ybins1.min(),ybins1.max()])
+    ax2.contour(counts2.T, levels, linewidths=lw, colors=color, linestyles=ls, extent=[xbins2.min(),xbins2.max(),ybins2.min(),ybins2.max()])
+
+    axlist = [ax1, ax2]
+    imlist = [im1, im2]
+    labellist = [zlabel1, zlabel2]
+    cnormlist = [cnorm1, cnorm2]
+    ticklist = [zticks1, zticks2]
+    extendlist = ['both', 'max']
+    zlimlist = [zlim1, zlim2]
+    for i, ax in enumerate(axlist):
+        divider = make_axes_locatable(ax)
+        cbax = divider.append_axes('top', size='5%', pad=0.05)
+        cb = fig.colorbar(imlist[i], cax=cbax, norm=cnormlist[i], orientation='horizontal', ticks=ticklist[i], extend=extendlist[i])
+        cbax.xaxis.set_ticks_position('top')
+        cbax.xaxis.set_label_position('top')
+        cb.ax.tick_params(labelsize=14, pad=5)
+        cb.set_label(labellist[i], size=18, labelpad=5)
+        cb.set_clim(vmin=zlimlist[i][0], vmax=zlimlist[i][1])
+        ax.grid()
+        ax.tick_params(axis='both', labelsize=16)
+        ax.set_xlabel(xlabel)
+
+    ax1.set_ylabel(ylabel)
+    ax1.set_xlim(xlim)
+    ax1.set_ylim(ylim)
+
+    plt.subplots_adjust(wspace=0.1, left=0.1, right=0.9)
+    plotname = os.path.join(data_loc, 'plots/sfr_av_rv_fbump_contours.pdf')
     #plt.savefig(plotname)
     plt.show()
 
@@ -167,7 +229,8 @@ def main():
     sampler_file = os.path.join(data_loc1, 'all_runs.h5')
 
     # get median R_V and f_bump values of each pixel
-    grid = gather_grid(sampler_file)
+    #grid = gather_grid(sampler_file)
+    grid = np.loadtxt(os.path.join(data_loc1, 'median_rv_fbump_per_reg.dat'))
 
     # gather the CMD and flux data
     fuvdata, nuvdata, otherdata = compile_data.gather_map_data()
@@ -195,7 +258,7 @@ def main():
 
     #map1(rv, fb, otherdata, data_loc=data_loc1)
     #map2(rv, fb, otherdata, data_loc=data_loc1)
-    #sfr_rv_fbump(rv, fb, otherdata, data_loc=data_loc1)
+    sfr_rv_fbump(rv, fb, otherdata, data_loc=data_loc1)
     return rv, fb
 
 
