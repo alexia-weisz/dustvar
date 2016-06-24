@@ -4,7 +4,7 @@ import numpy as np
 
 data_loc = '/Users/alexialewis/research/PHAT/dustvar/'
 run_loc = '/astro/store/phat/arlewis/dustvar/'
-condorfile = os.path.join(data_loc, 'model_rv_condor_all_nofbump.cfg')
+condorfile = os.path.join(data_loc, 'model_rv_fbump_newred_all_condor.cfg')
 
 
 f = open(condorfile, 'w')
@@ -23,8 +23,8 @@ count = 0
 for j in range(0, finite_reg_num):
     region = str(j+1).zfill(5)
 
-    out = run_loc + 'data_region_' + region + '.h5'
-    scrnfile = run_loc + 'screen_' + region + '.out'
+    out = run_loc + 'newred_data_region_' + region + '.h5'
+    scrnfile = run_loc + 'newred_screen_' + region + '.out'
     run = str(j)
 
     f.write('Arguments = ' + run + ' \n')

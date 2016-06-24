@@ -11,7 +11,6 @@ import matplotlib.colors as mcolors
 
 from sedpy import attenuation, observate
 import compile_data
-import bursty_sfh
 
 from joblib import Parallel, delayed
 
@@ -40,20 +39,17 @@ def get_data(res='90', dust_curve='cardelli'):
     data_color = (fuvdata['magobs'] - nuvdata['magobs']) - (fuvdata['magmodint'] - nuvdata['magmodint'])
     data_color = data_color[np.isfinite(data_color)]
 
-    av = otherdata['av']
+    av = otherdata['avdav']
     av = av[np.isfinite(av)]
-
-    dav = otherdata['dav']
-    dav = dav[np.isfinite(dav)]
 
     sfr = otherdata['sfr100']
     sfr = sfr[np.isfinite(sfr)]
     sel = (sfr > 1e-5) & (data_color < 2.)
 
-    return data_fuv, data_nuv, data_color, av, dav
+    return data_fuv, data_nuv, data_color, av
 
 
-def ext_func(rv, av, dav, f_bump=1., att=attenuation.conroy):
+def ext_func(rv, av, f_bump=1., att=attenuation.conroy):
     """
     Given an R_V and f_bump value, returns the flux ratio or delta color from a specific attenuation curve.
 
@@ -63,12 +59,11 @@ def ext_func(rv, av, dav, f_bump=1., att=attenuation.conroy):
     f_bump : float, optional; strength of the 2175 \AA bump in fraction of MW bump strength
     att : sedpy.attenuation funcion, optional; attenuation curve to use. Default: attenuation.conroy
     """
-    specred, lir = redden(wave, spec, av=av, dav=dav,dust_curve=att, nsplit=30)
-    #tau_v = av / 1.086
-    #tau_lambda = att(wave, R_v=rv, f_bump=f_bump, tau_v=tau_v)
-    #f2 = s * np.exp(-tau_lambda)
-    mags_red = observate.getSED(wave, specred, filters)
-    mags = observate.getSED(wave, spec, filters)
+    tau_v = av / 1.086
+    tau_lambda = att(wave, R_v=rv, f_bump=f_bump, tau_v=tau_v)
+    f2 = s * np.exp(-tau_lambda)
+    mags_red = observate.getSED(wave, f2, filters)
+    mags = observate.getSED(wave, s, filters)
 
     fluxes_red = [3631*10**(-0.4 * (mag + M31_DM)) for mag in mags_red]
     fluxes = [3631 * 10**(-0.4 * (mag + M31_DM)) for mag in mags]
@@ -78,11 +73,11 @@ def ext_func(rv, av, dav, f_bump=1., att=attenuation.conroy):
     return val_fuv, val_nuv
 
 
-def lnlike(data_fuv, data_nuv, sigma_fuv, sigma_nuv, theta, best_av, best_dav):
+def lnlike(data_fuv, data_nuv, sigma_fuv, sigma_nuv, theta, best_av):
     """
     data_fuv, etc are for a SINGLE pixel
     """
-    model = ext_func(theta[0], best_av, best_dav, f_bump=theta[1], att=ATT)
+    model = ext_func(theta[0], best_av, f_bump=theta[1], att=ATT)
     val = ((model[0] - data_fuv)**2/sigma_fuv**2) + ((model[1] - data_nuv)**2/sigma_nuv**2)
     return -0.5 * val
 
@@ -97,11 +92,11 @@ def lnprior(theta):
     return -np.inf
 
 
-def lnprob(theta, data_fuv, data_nuv, sigma_fuv, sigma_nuv, best_av, best_dav):
+def lnprob(theta, data_fuv, data_nuv, sigma_fuv, sigma_nuv, best_av):
     lp = lnprior(theta)
     if not np.isfinite(lp):
         return -np.inf
-    return lp + lnlike(data_fuv, data_nuv, sigma_fuv, sigma_nuv, theta, best_av, best_dav)
+    return lp + lnlike(data_fuv, data_nuv, sigma_fuv, sigma_nuv, theta, best_av)
 
 
 def initialize(init, ndim, nwalkers):
@@ -226,7 +221,7 @@ def main(i, **kwargs):
     data_loc = '/astro/store/phat/arlewis/dustvar/'
 
     # gather the real data
-    y_fuv, y_nuv, y_color, av, dav = get_data()
+    y_fuv, y_nuv, y_color, avdav = get_data()
     y_fuv, y_nuv, y_color = y_fuv, y_nuv, y_color
     z = len(str(len(y_fuv)))
 
@@ -259,7 +254,7 @@ def main(i, **kwargs):
     sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob,
                                     args=(y_fuv[i], y_nuv[i],
                                           sigma_fuv[i], sigma_nuv[i],
-                                          av[i], dav[i]))
+                                          avdav[i]))
 
     # Run emcee
     sampler, pos = run_emcee(sampler, run_steps, restart_steps, pos,
@@ -270,7 +265,7 @@ def main(i, **kwargs):
 
     # create a file to store data and write results
     region = 'region_' + str(i+1).zfill(z)
-    filename = os.path.join(data_loc, 'newred_data_' + region + '.h5')
+    filename = os.path.join(data_loc, 'data_' + region + '.h5')
     with h5py.File(filename, 'w') as hf:
         g = hf.create_group(region)
         g.create_dataset('sampler_chain', data=sampler.chain)
@@ -286,7 +281,7 @@ if __name__ == '__main__':
     sps.params['sfh'] = 4
     sps.params['const'] = 1.0
     sps.params['imf_type'] = 2
-    wave, spec = sps.get_spectrum(tage=1.0, peraa=True)
+    wave, s = sps.get_spectrum(tage=1.0, peraa=True)
 
     M31_DM = 24.47
     ATT = attenuation.conroy
@@ -295,7 +290,7 @@ if __name__ == '__main__':
     filters = observate.load_filters(filters)
 
     reg_num = get_args().reg
-    kwargs = {'wave': wave, 'spec': spec, 'filters': filters, 'M31_DM': M31_DM,
+    kwargs = {'wave': wave, 's': s, 'filters': filters, 'M31_DM': M31_DM,
               'ATT': ATT}
 
     main(reg_num, **kwargs)
