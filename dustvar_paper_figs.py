@@ -5,6 +5,7 @@ import astrogrid
 import match_utils
 import fsps
 from sedpy import attenuation, observate
+import h5py
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -524,13 +525,13 @@ def fig_compare_rv_fb():
         legend = ax.legend(loc='upper left', fontsize=12,frameon=False, title=labels[i])
         ax.tick_params(axis='both', labelsize=18)
         plt.setp(legend.get_title(),fontsize=16)
+        ax.set_xlabel(r'1/$\lambda$ [$\mu \textrm{m}^{-1}$]', fontsize=22)
 
     ax1.set_ylabel(r'$A_\lambda / A_V$', fontsize=22)
-    ax1.set_xlabel(r'1/$\lambda$ [$\mu \textrm{m}^{-1}$]', fontsize=22)
     ax1.set_xlim(0.2, 8.2)
     ax1.set_ylim(0, 8)
 
-
+    plt.subplots_adjust(wspace=0.05)
     plotname = os.path.join(_PLOT_DIR, 'rv_fb_variation.pdf')
     print plotname
     if kwargs['save']:
@@ -539,23 +540,69 @@ def fig_compare_rv_fb():
         plt.show()
 
 
-def fig_sigma_param_distributions(otherdata, **kwargs):
-    import h5py
-    hf_file = os.path.join(_WORK_DIR, 'all_runs.h5')
-    hf = h5py.File(hf_file, 'r')
+def fig_region_triangles(otherdata, regs=[3,2630,1087], **kwargs):
+    import corner
+    corner.ScalarFormatter(useOffset=False)
+    h5file = os.path.join(_WORK_DIR, 'all_runs.h5')
+    hf = h5py.File(h5file, 'r')
+    if regs is None:
+        nregs = len(hf.keys())
+    else:
+        nregs = regs
 
-    nregs = len(hf.keys())
-    reg_range = range(nregs)
-    nsamples = hf.get(hf.keys()[0])['sampler_chain'].shape[1]
-    grid = np.asarray(np.zeros((nregs, 4)))
-    for i, reg in enumerate(reg_range):
-        group = hf.get(hf.keys()[reg])
-        grid[i,0] = np.median(np.asarray(group['sampler_flatchain'][:,0]))
-        grid[i,1] = np.std(np.asarray(group['sampler_flatchain'][:,0]))
-        grid[i,2] = np.median(np.asarray(group['sampler_flatchain'][:,1]))
-        grid[i,3] = np.std(np.asarray(group['sampler_flatchain'][:,1]))
+    labels = [r'$\langle R_V \rangle$', r'$\langle f_{\textrm{bump}} \rangle$']
+
+    xloc1, yloc1 = [0.05, 0.05, 0.6], [0.9, 0.9, 0.9]
+    xloc2, yloc2 = [0.05, 0.05, 0.6], [0.75, 0.75, 0.75]
+
+    for i, r in enumerate(regs):
+        av = otherdata['avdav'][np.isfinite(otherdata['avdav'])][regs[i]-1]
+        sfr = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])][regs[i]-1]
+        avtext = r'$A_V$ = ' + str(np.around(av, 2))
+        sfrtext = r'$\log$ SFR = ' + '\n' + str(np.around(np.log10(sfr),2))
+
+        label_kwargs = dict(labels=labels, labelpad=-50)
+
+        nn = 'region_dist_' + str(r).zfill(5) + '.pdf'
+        plotname = os.path.join(_PLOT_DIR, nn)
+        sampler = np.asarray(hf.get(hf.keys()[regs[i]-1])['sampler_flatchain'])
+        #sampler = np.asarray(group['sampler_flatchain'])
+        fig = corner.corner(sampler[:,:], **label_kwargs)
+        ax = fig.axes
+        ax[0].text(xloc1[i], yloc1[i], avtext, transform=ax[0].transAxes, size=10)
+        ax[0].text(xloc2[i], yloc2[i], sfrtext, transform=ax[0].transAxes, size=10, ma='center')
+
+
+        print plotname
+        if kwargs['save']:
+            plt.savefig(plotname)
+        else:
+            plt.show()
+
     hf.close()
 
+
+def fig_sigma_param_distributions(otherdata, first=False, **kwargs):
+    import h5py
+    hf_file = os.path.join(_WORK_DIR, 'all_runs.h5')
+    gridfile = os.path.join(_WORK_DIR, 'med_sig_rv_fbump_per_region.dat')
+    if first:
+        hf = h5py.File(hf_file, 'r')
+
+        nregs = len(hf.keys())
+        reg_range = range(nregs)
+        nsamples = hf.get(hf.keys()[0])['sampler_chain'].shape[1]
+        grid = np.asarray(np.zeros((nregs, 4)))
+        for i, reg in enumerate(reg_range):
+            group = hf.get(hf.keys()[reg])
+            grid[i,0] = np.median(np.asarray(group['sampler_flatchain'][:,0]))
+            grid[i,1] = np.std(np.asarray(group['sampler_flatchain'][:,0]))
+            grid[i,2] = np.median(np.asarray(group['sampler_flatchain'][:,1]))
+            grid[i,3] = np.std(np.asarray(group['sampler_flatchain'][:,1]))
+        hf.close()
+        plt.savetxt(gridfile, grid)
+    else:
+        grid = np.loadtxt(gridfile)
 
     sfr100 = otherdata['sfr100']
     shape = sfr100.shape
@@ -652,7 +699,7 @@ def fig_sigma_param_distributions(otherdata, **kwargs):
     ims = [im1, im2]
     cbax = [cbax1, cbax2]
     ticks = [ticks1, ticks2]
-    labels = [r'$\sigma_{R_V} / R_V$', r'$\sigma_{f_{bump}} / f_{bump}$']
+    labels = [r'$\langle \sigma_{R_V} \rangle / \langle R_V \rangle$', r'$\langle \sigma_{f_{bump}} \rangle / \langle f_{bump} \rangle$']
 
     for i in range(len(cbax)):
         cb = fig.colorbar(ims[i], cax=cbax[i], orientation='vertical', ticks=ticks[i], drawedges=False, extend=extend)
@@ -665,6 +712,7 @@ def fig_sigma_param_distributions(otherdata, **kwargs):
         ax.set_xlabel(labels[i], fontsize=14)
 
     plt.subplots_adjust(hspace=0.4, wspace=0.03, left=0.1, right=0.92, top=0.92)
+    print plotname
     if kwargs['save']:
         plt.savefig(plotname)
     else:
@@ -672,8 +720,93 @@ def fig_sigma_param_distributions(otherdata, **kwargs):
 
 
 
+def fig_param_distributions(otherdata, first=False, **kwargs):
+    gridfile = os.path.join(_WORK_DIR, 'med_sig_rv_fbump_per_region.dat')
+    if first:
+        import h5py
+        hf_file = os.path.join(_WORK_DIR, 'all_runs.h5')
+        hf = h5py.File(hf_file, 'r')
+
+        nregs = len(hf.keys())
+        reg_range = range(nregs)
+        nsamples = hf.get(hf.keys()[0])['sampler_chain'].shape[1]
+        grid = np.asarray(np.zeros((nregs, 4)))
+        for i, reg in enumerate(reg_range):
+            group = hf.get(hf.keys()[reg])
+            grid[i,0] = np.median(np.asarray(group['sampler_flatchain'][:,0]))
+            grid[i,1] = np.std(np.asarray(group['sampler_flatchain'][:,0]))
+            grid[i,2] = np.median(np.asarray(group['sampler_flatchain'][:,1]))
+            grid[i,3] = np.std(np.asarray(group['sampler_flatchain'][:,1]))
+        hf.close()
+        np.savetxt(gridfile, grid)
+    else:
+        grid = np.loadtxt(gridfile)
+
+    sel1 = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > 1e-5
+    #sel2 = otherdata['av'][np.isfinite(otherdata['avdav'])] + otherdata['dav'][np.isfinite(otherdata['dav'])] > 1.0
+    sel2 = otherdata['avdav'][np.isfinite(otherdata['avdav'])] > 1.0
+
+    print len(sel1[sel1]), len(sel2[sel2])
+
+    plotname = os.path.join(_PLOT_DIR, 'rv_fbump_distributions')
+
+    fig, ax = plt.subplots(2, 2)
+
+    hist1 = ax[0,0].hist(grid[:,0], bins=50, histtype='step', color='black', lw=2)
+    hist2 = ax[0,1].hist(grid[:,1], bins=50, histtype='step', color='black', lw=2)
+    hist3 = ax[1,0].hist(grid[:,2], bins=50, histtype='step', color='black', lw=2)
+    hist4 = ax[1,1].hist(grid[:,3], bins=50, histtype='step', color='black', lw=2)
+
+    color = next(plt.gca()._get_lines.prop_cycler)
+    c = color['color']
+
+    hist1 = ax[0,0].hist(grid[sel1,0], bins=50, histtype='step', color=c, lw=2)
+    hist2 = ax[0,1].hist(grid[sel1,1], bins=50, histtype='step', color=c, lw=2)
+    hist3 = ax[1,0].hist(grid[sel1,2], bins=50, histtype='step', color=c, lw=2)
+    hist4 = ax[1,1].hist(grid[sel1,3], bins=50, histtype='step', color=c, lw=2)
+
+    color = next(plt.gca()._get_lines.prop_cycler)
+    color = next(plt.gca()._get_lines.prop_cycler)
+    c = color['color']
+
+    hist1 = ax[0,0].hist(grid[sel2,0], bins=50, histtype='step', color=c, lw=2)
+    hist2 = ax[0,1].hist(grid[sel2,1], bins=50, histtype='step', color=c, lw=2)
+    hist3 = ax[1,0].hist(grid[sel2,2], bins=50, histtype='step', color=c, lw=2)
+    hist4 = ax[1,1].hist(grid[sel2,3], bins=50, histtype='step', color=c, lw=2)
 
 
+    labels = [r'$\langle R_V \rangle$', r'$\langle \sigma_{R_V} \rangle$', r'$\langle f_{bump} \rangle$',r'$\langle \sigma_{f_{bump}} \rangle$']
+
+    for i, ax in enumerate([ax[0,0], ax[0,1], ax[1,0], ax[1,1]]):
+        ax.tick_params(axis='both', labelsize=14)
+        ax.set_xlabel(labels[i], fontsize=16)
+
+    plt.subplots_adjust(wspace=0.2, hspace=0.25, left=0.08, right=0.92, top=0.95)
+    if kwargs['save']:
+        plt.savefig(plotname)
+    else:
+        plt.show()
+
+
+def fig_ensemble_triangles(infile='/Users/alexialewis/research/PHAT/dustvar/sampler_independent/final_sampler_rv_fbump.h5', **kwargs):
+    import corner
+    with h5py.File(infile, 'r') as hf:
+        corner.ScalarFormatter(useOffset=False)
+        sampler_rv = hf.get('R_V')['sampler_flatchain']
+        sampler_fb = hf.get('f_bump')['sampler_flatchain']
+        labels_rv = [r'$\mu_{R_V}$', '$\sigma_{R_V}$']
+        labels_fb = ['$\mu_{f_{bump}}$', '$\sigma_{f_{bump}}$']
+
+        fig1 = corner.corner(sampler_rv,labels=labels_rv)#,range=lim)
+        plotname1 = os.path.join(_PLOT_DIR, 'triangle_rv_sfrgt-5.pdf')
+        if kwargs['save']:
+            plt.savefig(plotname1)
+        fig2 = corner.corner(sampler_fb, labels=labels_fb)
+        plotname2 = os.path.join(_PLOT_DIR, 'triangle_fb_sfrgt-5.pdf')
+        if kwargs['save']:
+            plt.savefig(plotname2)
+        if ~kwargs['save']:
+            plt.show()
 
 
 def fig_maps_uvdust(fuvdata, nuvdata, **kwargs):
@@ -1089,7 +1222,10 @@ if __name__ == '__main__':
     #fig_att_curves(tage=0.0, **kwargs)   ##fig1
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)  ##fig2
     #fig_compare_rv_fb()  ## fig3
-    fig_sigma_param_distributions(otherdata, **kwargs)
+    #fig_region_triangles(otherdata, **kwargs)
+    #fig_sigma_param_distributions(otherdata, **kwargs)
+    #fig_param_distributions(otherdata, **kwargs)
+    fig_ensemble_triangles(infile='/Users/alexialewis/research/PHAT/dustvar/sampler_independent/final_sampler_rv_fbump.h5', **kwargs)
 
 
     sfrsel = otherdata['sfr100'] > 1e-5
