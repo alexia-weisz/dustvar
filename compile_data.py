@@ -144,11 +144,11 @@ def gather_map_data(res='90', dust_curve='cardelli', sfh='full_sfh'):
     return fuvdata, nuvdata, otherdata
 
 
-def gather_sfh(res):
+def gather_sfh(res, sfhcube='sfr_evo_cube.fits'):
 
     _DATA_DIR, _WORK_DIR, _MOD_DIR = define_dir_structure(res)
 
-    sfhcubefile = _DATA_DIR + 'sfr_evo_cube.fits'
+    sfhcubefile = _DATA_DIR + sfhcube
     sfhcubefile_upper = _DATA_DIR + 'sfr_evo_upper_cube.fits'
     sfhcubefile_lower = _DATA_DIR + 'sfr_evo_lower_cube.fits'
     sfhcube, sfhhdr = pyfits.getdata(sfhcubefile, header=True) #20 x 211 x 75
