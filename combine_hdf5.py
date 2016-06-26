@@ -7,7 +7,7 @@ data_loc = '/Users/alexialewis/research/PHAT/dustvar'
 emcee_loc = os.path.join(data_loc, 'emcee_runs')
 file_list = glob.glob(emcee_loc + '/*.h5')
 
-single_file = os.path.join(data_loc, 'all_runs_nofbump.h5')
+single_file = os.path.join(data_loc, 'all_runs_newred.h5')
 
 with h5py.File(single_file, 'w') as hf:
     for infile in file_list:
