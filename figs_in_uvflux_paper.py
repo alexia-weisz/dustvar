@@ -14,7 +14,7 @@ from scipy.stats import binned_statistic_2d
 from astropy.coordinates import Distance
 import astropy.units as u
 import astropy.constants as const
-import plot_map_fig1 as plot_fig1
+#import plot_map_fig1 as plot_fig1
 
 from sys import exit
 from pdb import set_trace
@@ -857,7 +857,7 @@ def fig7(fuvdata, nuvdata, otherdata, log=False, **kwargs):
     p05 = reg_paths[2].vertices
     p05 = np.vstack([p05, p05[0]])
 
-    cmap_red = plt.cm.Reds
+    cmap_red = plt.cm.RdYlBu
     cmap_red.set_bad('0.65')
 
     ## Plot
@@ -918,7 +918,7 @@ def fig7(fuvdata, nuvdata, otherdata, log=False, **kwargs):
         ax.set_yticks([])
 
     if kwargs['save']:
-        plotname = os.path.join(_PLOT_DIR,'flux_obscured_sf_maps_6vertical.'+plot_kwargs['format'])
+        plotname = os.path.join(_PLOT_DIR,'flux_obscured_sf_maps_6vertical_newcmap.'+plot_kwargs['format'])
         plt.savefig(plotname, **plot_kwargs)
     else:
         plt.show()
@@ -979,7 +979,7 @@ def fig7(fuvdata, nuvdata, otherdata, log=False, **kwargs):
         ax.set_yticks([])
 
     if kwargs['save']:
-        plotname = os.path.join(_PLOT_DIR,'flux_obscured_sf_maps_6tile.'+plot_kwargs['format'])
+        plotname = os.path.join(_PLOT_DIR,'flux_obscured_sf_maps_6tile_newcmap.'+plot_kwargs['format'])
         plt.savefig(plotname, **plot_kwargs)
     else:
         plt.show()
@@ -1549,7 +1549,7 @@ if __name__ == '__main__':
     #fig4(fuvdata, nuvdata, ratio=True, two=True, single=None, **kwargs)
     #fig5_6(fuvdata, nuvdata, otherdata, xtype='fluxobs')
     #fig5_6(fuvdata, nuvdata, otherdata, xtype='sfr', recent=True)
-    #fig7(fuvdata, nuvdata, otherdata, **kwargs)
+    fig7(fuvdata, nuvdata, otherdata, **kwargs)
     #fig8(fuvdata, nuvdata, otherdata, **kwargs)
 
 

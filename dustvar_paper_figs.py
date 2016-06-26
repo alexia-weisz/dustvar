@@ -488,6 +488,10 @@ def fig_att_curves(tage=0.0, **kwargs):
 
 
 def fig_compare_rv_fb():
+    filters = ['galex_fuv', 'galex_nuv', 'wfc3_uvis_f475w', 'wfc3_uvis_f814w']
+    filters = observate.load_filters(filters)
+
+
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10,5), sharex=True, sharey=True)
 
     wave, s = create_spectrum(tage=0.2)
@@ -519,6 +523,20 @@ def fig_compare_rv_fb():
         ax2.plot(1./wave_micron, A_lambda2/A_V_conroy, lw=2,label=lab2)
 
 
+    for i in range(len(filters)):
+        xx = 1./(filters[i].wavelength/1e4)
+        yy = filters[i].transmission
+        cc = '0.5'
+        f = 7.
+        ax1.plot(xx, yy/np.max(yy)*f, lw=0)
+        ax1.fill_between(xx, 0, yy/np.max(yy)*f, lw=0, edgecolor=cc,
+                         facecolor=cc, alpha=0.2)
+        ax2.plot(xx, yy/np.max(yy), lw=0)
+        ax2.fill_between(xx, 0, yy/np.max(yy)*f, lw=0, edgecolor=cc,
+                         facecolor=cc, alpha=0.2)
+
+
+
     labels = [r'$R_V$', r'$f_\textrm{bump}$']
     for i, ax in enumerate([ax1, ax2]):
         ax.grid()
@@ -532,7 +550,7 @@ def fig_compare_rv_fb():
     ax1.set_ylim(0, 8)
 
     plt.subplots_adjust(wspace=0.05)
-    plotname = os.path.join(_PLOT_DIR, 'rv_fb_variation.pdf')
+    plotname = os.path.join(_PLOT_DIR, 'rv_fb_variation_filters.pdf')
     print plotname
     if kwargs['save']:
         plt.savefig(plotname, **plot_kwargs)
@@ -1221,11 +1239,11 @@ if __name__ == '__main__':
     ## ------------ ##
     #fig_att_curves(tage=0.0, **kwargs)   ##fig1
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)  ##fig2
-    #fig_compare_rv_fb()  ## fig3
+    fig_compare_rv_fb()  ## fig3
     #fig_region_triangles(otherdata, **kwargs)
     #fig_sigma_param_distributions(otherdata, **kwargs)
     #fig_param_distributions(otherdata, **kwargs)
-    fig_ensemble_triangles(infile='/Users/alexialewis/research/PHAT/dustvar/sampler_independent/final_sampler_rv_fbump.h5', **kwargs)
+    #fig_ensemble_triangles(infile='/Users/alexialewis/research/PHAT/dustvar/sampler_independent/final_sampler_rv_fbump.h5', **kwargs)
 
 
     sfrsel = otherdata['sfr100'] > 1e-5
