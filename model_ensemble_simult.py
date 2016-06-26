@@ -215,12 +215,12 @@ if __name__ == '__main__':
         threads = 1
 
     data_loc = os.path.join(_TOP_DIR, 'dustvar')
-    filename = os.path.join(data_loc, 'all_runs.h5')
+    filename = os.path.join(data_loc, 'all_runs_newred.h5')
 
     if selection:
         outfile = os.path.join(data_loc,'final_sampler_rv_fbump_cov_avdavgt05.h5')
     else:
-        outfile = os.path.join(data_loc, 'final_sampler_rv_fbump_cov.h5')
+        outfile = os.path.join(data_loc, 'final_sampler_rv_fbump_cov_newred.h5')
 
     nsamples = 50
 
