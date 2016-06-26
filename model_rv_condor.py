@@ -32,8 +32,11 @@ def get_data(res='90', dust_curve='cardelli'):
     Returns FUV flux ratio, NUV flux ratio, delta UV color, and optical Av+dAv from the SFHs.
     """
     fuvdata, nuvdata, otherdata = compile_data.gather_map_data(res, dust_curve)
+    sfhcube, sfhcube_upper, sfhcube_lower,sfhhdr = compile_data.gather_sfh(res, sfhcube='sfr_evo_cube_alltimes.fits')
+
     data_fuv = fuvdata['fluxobs'] / fuvdata['fluxmodint']
     data_fuv = data_fuv[np.isfinite(data_fuv)]
+    selbad = np.where(~np.isfinite(data_fuv))
 
     data_nuv = nuvdata['fluxobs'] / nuvdata['fluxmodint']
     data_nuv = data_nuv[np.isfinite(data_nuv)]
@@ -51,7 +54,14 @@ def get_data(res='90', dust_curve='cardelli'):
     sfr = sfr[np.isfinite(sfr)]
     sel = (sfr > 1e-5) & (data_color < 2.)
 
-    return data_fuv, data_nuv, data_color, av, dav
+    sfh = []
+    for i in range(len(sfhcube.shape[0])):
+        x = sfhcube[i,:,:]
+        x[selbad] = np.nan
+        sfh.append(x[np.isfinite(x)])
+    sfh = np.asarray(sfh)
+
+    return data_fuv, data_nuv, data_color, av, dav, sfh
 
 
 def ext_func(rv, av, dav, f_bump=1., att=attenuation.conroy):
