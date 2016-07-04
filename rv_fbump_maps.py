@@ -108,7 +108,7 @@ def make_maps(rv, fb, rvlims=[0,10], fblims=[0,1.5], cmap1=plt.cm.inferno, cmap2
         plt.show()
 
 
-def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.Blues, cmap2=plt.cm.Reds, save=True, cut=True):
+def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.Blues, cmap2=plt.cm.Reds, save=False, cut=True):
     sfrsel = other['sfr100'] < 1e-5
     new_rv, new_fb = copy.copy(rv), copy.copy(fb)
     if cut:
@@ -122,7 +122,7 @@ def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cma
     if cut:
         plotname = os.path.join(data_loc,'plots/rv_fbump_maps_sfrcut_1e-5.pdf')
     print plotname
-    make_maps(new_rv, new_fb, rvlims=[2, 5], fblims=[0.4, 1.3], cmap1=cmap1, cmap2=cmap2, save=save, plotname=plotname, labels=labels)
+    make_maps(new_rv, new_fb, rvlims=[2.4, 4.2], fblims=[0.5, 1.1], cmap1=cmap1, cmap2=cmap2, save=save, plotname=plotname, labels=labels)
 
 
 def map2(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.RdBu, cmap2=plt.cm.RdBu, save=False):
@@ -256,9 +256,9 @@ def main():
     rv = rv_array.reshape(shape)
     fb = fb_array.reshape(shape)
 
-    #map1(rv, fb, otherdata, data_loc=data_loc1)
+    map1(rv, fb, otherdata, data_loc=data_loc1)
     #map2(rv, fb, otherdata, data_loc=data_loc1)
-    sfr_rv_fbump(rv, fb, otherdata, data_loc=data_loc1)
+    #sfr_rv_fbump(rv, fb, otherdata, data_loc=data_loc1)
     return rv, fb
 
 

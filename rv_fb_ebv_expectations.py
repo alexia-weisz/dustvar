@@ -138,10 +138,16 @@ def theoretical_predictions():
     plt.show()
 
 
-def get_grid_data(first=False):
-    if first:
+def get_grid_data(create_file=False, newred=True):
+    if newred:
+        gridfile = _WORK_DIR + 'median_rv_fbump_per_reg_newred.dat'
+        infile = _WORK_DIR + 'all_runs_newred.h5'
+    else:
+        gridfile = _WORK_DIR + 'median_rv_fbump_per_reg.dat'
+        infile = _WORK_DIR + 'all_runs.h5'
+    if create_file or not os.path.exists(gridfile):
         import h5py
-        hf_file = os.path.join(_WORK_DIR, 'all_runs.h5')
+        hf_file = os.path.join(_WORK_DIR, infile)
         hf = h5py.File(hf_file, 'r')
 
         nregs = len(hf.keys())
@@ -209,7 +215,7 @@ if __name__ == '__main__':
 
     first = False
 
-    grid = get_grid_data(first=False)
+    grid = get_grid_data(create_file=False, newred=True)
 
     rv, fb = grid_to_arrays(grid, otherdata)
 

@@ -418,7 +418,7 @@ def fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=False, sel=None, **kwargs)
     else:
         plt.show()
 
-def fig_att_curves(tage=0.0, **kwargs):
+def fig_att_curves(tage=0.0, mine=False, **kwargs):
 
     filters = ['galex_fuv', 'galex_nuv', 'wfc3_uvis_f475w', 'wfc3_uvis_f814w']
     filters = observate.load_filters(filters)
@@ -427,14 +427,17 @@ def fig_att_curves(tage=0.0, **kwargs):
     tau_lambda_calzetti = attenuation.calzetti(wave, R_v=4.05, tau_v=1.0)
     tau_lambda_cardelli = attenuation.cardelli(wave, R_v=3.10, tau_v=1.0)
     tau_lambda_smc = attenuation.smc(wave, tau_v=1.0)
+    tau_lambda_me = attenuation.conroy(wave, R_v=3.01, f_bump=0.63)
     A_lambda_calzetti = np.log10(np.exp(1)) * tau_lambda_calzetti
     A_lambda_cardelli = np.log10(np.exp(1)) * tau_lambda_cardelli
     A_lambda_smc = np.log10(np.exp(1)) * tau_lambda_smc
+    A_lambda_me = np.log10(np.exp(1)) * tau_lambda_me
 
     sel = (wave > 5489) & (wave < 5511)
     A_V_calzetti = np.mean(A_lambda_calzetti[sel])
     A_V_cardelli = np.mean(A_lambda_cardelli[sel])
-    A_V_smc= np.mean(A_lambda_smc[sel])
+    A_V_smc = np.mean(A_lambda_smc[sel])
+    A_V_me = np.mean(A_lambda_me[sel])
 
     wave_micron = wave / 1e4
 
@@ -453,6 +456,9 @@ def fig_att_curves(tage=0.0, **kwargs):
              color=color, ls='--', label='Calzetti', zorder=zorder)
     ax.plot(1./wave_micron, A_lambda_smc/A_V_smc, lw=lw,
              color=color, ls=':', label='SMC', zorder=zorder)
+    if mine:
+        ax.plot(1./wave_micron, A_lambda_me/A_V_me, lw=lw,
+             color='red', ls='-', label='SMC', zorder=zorder)
 
     textx = [0.78, 0.48, 0.22, 0.07]
     texty = 0.93
@@ -479,7 +485,10 @@ def fig_att_curves(tage=0.0, **kwargs):
     for a in [ax, ax2]:
         a.tick_params(axis='both', labelsize=18)
 
-    plotname = os.path.join(_PLOT_DIR, 'avdav_fuvnuv_compare.' + plot_kwargs['format'])
+    if mine:
+        plotname = os.path.join(_PLOT_DIR, 'avdav_fuvnuv_compare_mine.' + plot_kwargs['format'])
+    else:
+        plotname = os.path.join(_PLOT_DIR, 'avdav_fuvnuv_compare.' + plot_kwargs['format'])
     print plotname
     if kwargs['save']:
         plt.savefig(plotname, **plot_kwargs)
@@ -735,7 +744,6 @@ def fig_sigma_param_distributions(otherdata, first=False, **kwargs):
         plt.savefig(plotname)
     else:
         plt.show()
-
 
 
 def fig_param_distributions(otherdata, first=False, **kwargs):
@@ -1239,12 +1247,12 @@ if __name__ == '__main__':
     ## ------------ ##
     #fig_att_curves(tage=0.0, **kwargs)   ##fig1
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)  ##fig2
-    fig_compare_rv_fb()  ## fig3
-    #fig_region_triangles(otherdata, **kwargs)
+    #fig_compare_rv_fb()  ## fig3
+    fig_region_triangles(otherdata, **kwargs)
     #fig_sigma_param_distributions(otherdata, **kwargs)
     #fig_param_distributions(otherdata, **kwargs)
     #fig_ensemble_triangles(infile='/Users/alexialewis/research/PHAT/dustvar/sampler_independent/final_sampler_rv_fbump.h5', **kwargs)
-
+    #fig_att_curves(tage=0.0, mine=True, **kwargs)
 
     sfrsel = otherdata['sfr100'] > 1e-5
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, sel=sfrsel, **kwargs)
