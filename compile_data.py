@@ -144,7 +144,7 @@ def gather_map_data(res='90', dust_curve='cardelli', sfh='full_sfh'):
     return fuvdata, nuvdata, otherdata
 
 
-def gather_sfh(res, sfhcube='sfr_evo_cube.fits'):
+def gather_sfh(res, sfhcube='sfr_evo_cube.fits', metalcube=None):
 
     _DATA_DIR, _WORK_DIR, _MOD_DIR = define_dir_structure(res)
 
@@ -155,7 +155,12 @@ def gather_sfh(res, sfhcube='sfr_evo_cube.fits'):
     sfhcube_upper = pyfits.getdata(sfhcubefile_upper)
     sfhcube_lower = pyfits.getdata(sfhcubefile_lower)
 
-    return sfhcube, sfhcube_upper, sfhcube_lower, sfhhdr
+    if metalcube is not None:
+      metalfile = _DATA_DIR + metalcube
+      metalcube, metalhdr = pyfits.getdata(metalcubefile, header=True)
+      return sfhcube, sfhcube_upper, sfhcube_lower, sfhhdr, metalcube
+
+  return sfhcube, sfhcube_upper, sfhcube_lower, sfhhdr
 
 
 def gather_map_data_agelim(res='90', dust_curve='cardelli', sfh='full_sfh', correct_obs=False):
