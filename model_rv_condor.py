@@ -55,7 +55,7 @@ def get_data(ind, res='90', dust_curve='cardelli'):
     sfr = sfr[np.isfinite(sfr)]
     sel = (sfr > 1e-5) & (data_color < 2.)
 
-    return data_fuv[ind], data_nuv[ind], data_color[ind], av[ind], dav[ind]
+    return data_fuv[ind], data_nuv[ind], data_color[ind], av[ind], dav[ind], len(dav)
 
 
 def get_sfh_metals(ind, res='90', dust_curve='cardelli'):
@@ -443,7 +443,7 @@ def main(i, **kwargs):
     data_loc = '/astro/store/phat/arlewis/dustvar/'
 
     # gather the real data for region i
-    y_fuv, y_nuv, y_color, av, dav = get_data(i)
+    y_fuv, y_nuv, y_color, av, dav, z = get_data(i)
     sigma_fuv, sigma_nuv = 0.3 * y_fuv, 0.3 * y_nuv
 
     # get the sfh info
