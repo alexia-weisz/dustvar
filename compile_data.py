@@ -156,11 +156,11 @@ def gather_sfh(res, sfhcube='sfr_evo_cube.fits', metalcube=None):
     sfhcube_lower = pyfits.getdata(sfhcubefile_lower)
 
     if metalcube is not None:
-      metalfile = _DATA_DIR + metalcube
-      metalcube, metalhdr = pyfits.getdata(metalcubefile, header=True)
-      return sfhcube, sfhcube_upper, sfhcube_lower, sfhhdr, metalcube
+        metalfile = _DATA_DIR + metalcube
+        metalcube, metalhdr = pyfits.getdata(metalfile, header=True)
+        return sfhcube, sfhcube_upper, sfhcube_lower, sfhhdr, metalcube
 
-  return sfhcube, sfhcube_upper, sfhcube_lower, sfhhdr
+    return sfhcube, sfhcube_upper, sfhcube_lower, sfhhdr
 
 
 def gather_map_data_agelim(res='90', dust_curve='cardelli', sfh='full_sfh', correct_obs=False):
