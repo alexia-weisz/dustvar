@@ -577,27 +577,46 @@ def fig_region_triangles(otherdata, regs=[3,2630,1087], **kwargs):
     else:
         nregs = regs
 
-    labels = [r'$\langle R_V \rangle$', r'$\langle f_{\textrm{bump}} \rangle$']
+    #labels =[r'$\langle R_V \rangle$', r'$\langle f_{\textrm{bump}} \rangle$']
+    labels = [r'$\widetilde{R_V}$', r'$\widetilde{f_{\textrm{bump}}}$']
 
-    xloc1, yloc1 = [0.05, 0.05, 0.6], [0.9, 0.9, 0.9]
-    xloc2, yloc2 = [0.05, 0.05, 0.6], [0.75, 0.75, 0.75]
+    rvrange = [[1.4, 4.2]] * 2 + [[1.0, 10.0]]
+    fbrange = [[0.0, 1.5]] * 3
+
+    xloc1, yloc1 = 0.03, 0.8#[0.05, 0.05, 0.6], [0.9, 0.9, 0.9]
+    xloc2, yloc2 = 0.03, 0.60#0[.05, 0.05, 0.6], [0.75, 0.75, 0.75]
+    xloc3, yloc3 = 0.22, 0.45
 
     for i, r in enumerate(regs):
         av = otherdata['avdav'][np.isfinite(otherdata['avdav'])][regs[i]-1]
         sfr = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])][regs[i]-1]
-        avtext = r'$A_V$ = ' + str(np.around(av, 2))
-        sfrtext = r'$\log$ SFR = ' + '\n' + str(np.around(np.log10(sfr),2))
+        avtext = r'$\widetilde{A_V}$ = ' + str(np.around(av, 2))
+        sfrlabel = r'$\log$ SFR [M$_\odot$ yr$^{-1}$]'
+        sfrnum = ' = ' + str(np.around(np.log10(sfr),2))
+        sfrtext = sfrlabel + '\n' + sfrnum
 
         label_kwargs = dict(labels=labels, labelpad=-50)
 
         nn = 'region_dist_' + str(r).zfill(5) + '.pdf'
         plotname = os.path.join(_PLOT_DIR, nn)
         sampler = np.asarray(hf.get(hf.keys()[regs[i]-1])['sampler_flatchain'])
+
         #sampler = np.asarray(group['sampler_flatchain'])
-        fig = corner.corner(sampler[:,:], **label_kwargs)
+        rv_med, fb_med = np.nanmedian(sampler[:,0]), np.nanmedian(sampler[:,1])
+        print np.percentile(sampler[:,0], 84) -np.percentile(sampler[:,0], 16)
+
+
+        fig = corner.corner(sampler[:,:], range=[rvrange[i], fbrange[i]], **label_kwargs)
         ax = fig.axes
-        ax[0].text(xloc1[i], yloc1[i], avtext, transform=ax[0].transAxes, size=10)
-        ax[0].text(xloc2[i], yloc2[i], sfrtext, transform=ax[0].transAxes, size=10, ma='center')
+        ax0ylim = ax[0].get_ylim()
+        ax3ylim = ax[3].get_ylim()
+        line_kwargs = {'lw':3, 'color':'grey', 'ls':'--', 'alpha':0.5}
+        ax[0].plot([rv_med, rv_med], ax0ylim, **line_kwargs)
+        ax[3].plot([fb_med, fb_med], ax3ylim, **line_kwargs)
+        ax[1].text(xloc1, yloc1, avtext, transform=ax[1].transAxes, size=16)
+        #ax[1].text(xloc2, yloc2, sfrtext, transform=ax[1].transAxes, size=14, va='top')
+        ax[1].text(xloc2, yloc2, sfrlabel, transform=ax[1].transAxes, size=16)
+        ax[1].text(xloc3, yloc3, sfrnum, transform=ax[1].transAxes, size=16)
 
 
         print plotname
@@ -636,7 +655,8 @@ def fig_sigma_param_distributions(otherdata, first=False, **kwargs):
     sfr100flat = sfr100.flatten()
     sel = np.isfinite(sfr100flat)
     sel2 = np.isfinite(sfr100)
-
+    avdav = otherdata['avdav']
+    avdavflat = avdav.flatten()
 
     rv_array = np.zeros(shape).flatten()
     sig_rv_array = np.zeros(shape).flatten()
@@ -659,26 +679,31 @@ def fig_sigma_param_distributions(otherdata, first=False, **kwargs):
 
     x1 = sig_rv / rv
     x2 = sig_fb / fb
+    x3 = avdavflat
 
     x1[~sel2] = np.nan
     x2[~sel2] = np.nan
 
-    plotname = os.path.join(_PLOT_DIR, 'rv_fbump_sigma_distributions')
+    plotname = os.path.join(_PLOT_DIR, 'av_rv_fbump_sigma_distributions')
     #make_maps(x1, x2, var1lims=[0.05, 0.5], var2lims=[0.2, 1.1], cmap1=plt.cm.inferno, cmap2=plt.cm.inferno, extend='both',save=False, plotname=None)
 
-    var1, var2 = x1, x2
-    var1lims=[0.05, 0.5]
-    var2lims=[0.2, 1.1]
+    var1, var2, var3 = x1, x2, avdav
+    var1lims = [0.05, 0.45]
+    var2lims = [0.2, 1.1]
+    var3lims = [0.0, 1.5]
     extend = 'both'
 
-    fig = plt.figure(figsize=(7,4))
-    ax1 = plt.subplot2grid((2,3), (0,0))
-    ax2 = plt.subplot2grid((2,3), (0,1), colspan=2)
-    ax3 = plt.subplot2grid((2,3), (1, 0))
-    ax4 = plt.subplot2grid((2,3), (1, 1), colspan=2)
+    #fig = plt.figure(figsize=(7,4))
+    fig = plt.figure(figsize=(7,6.0))
+    ax5 = plt.subplot2grid((3,3), (0,0))
+    ax6 = plt.subplot2grid((3,3), (0,1), colspan=2)
+    ax1 = plt.subplot2grid((3,3), (1,0))
+    ax2 = plt.subplot2grid((3,3), (1,1), colspan=2)
+    ax3 = plt.subplot2grid((3,3), (2,0))
+    ax4 = plt.subplot2grid((3,3), (2,1), colspan=2)
 
     #plt.subplots_adjust(hspace=0.03, left=0.05, right=0.9, bottom=0.05, top=0.95)
-    axlist = [ax2, ax4]
+    axlist = [ax2, ax4, ax6]
     for ax in axlist:
         ax.set_xticks([])
         ax.set_yticks([])
@@ -688,32 +713,44 @@ def fig_sigma_param_distributions(otherdata, first=False, **kwargs):
     if var1lims is None:
         var1min, var1max = np.nanmin(var1), np.nanmax(var1)
         var2min, var2max = np.nanmin(var2), np.nanmax(var2)
+        var3min, var3max = np.nanmin(var3), np.nanmax(var3)
     else:
         var1min, var1max = var1lims[0], var1lims[1]
         var2min, var2max = var2lims[0], var2lims[1]
+        var3min, var3max = var3lims[0], var3lims[1]
 
-    dx1 = 0.05 * (var1max - var1min)
-    dx2 = 0.05 * (var2max - var2min)
-    cnorm1 = mcolors.Normalize(vmin=var1min-dx1, vmax=var1max+dx1)
-    cnorm2 = mcolors.Normalize(vmin=var2min-dx2, vmax=var2max+dx2)
+    def colornorm(cmin, cmax):
+        dx = 0.05 * (cmax - cmin)
+        cnorm = mcolors.Normalize(vmin=cmin-dx, vmax=cmax+dx)
+        return cnorm
 
-    cmap1, cmap2 = plt.cm.inferno, plt.cm.inferno
+    cnorm1 = colornorm(var1min, var1max)
+    cnorm2 = colornorm(var2min, var2max)
+    cnorm3 = colornorm(var3min, var3max)
+
+    cmap1, cmap2, cmap3 = plt.cm.inferno, plt.cm.inferno, plt.cm.inferno
     cmap1.set_bad('0.65')
     cmap2.set_bad('0.65')
+    cmap3.set_bad('0.65')
     if np.nanmin(var1) == -99.:
         cmap1 = adjust_cmap(cmap1)
     if np.nanmin(var2) == -99.:
         cmap2 = adjust_cmap(cmap2)
+    if np.nanmin(var3) == -99.:
+        cmap3 = adjust_cmap(cmap3)
 
 
     hist1 = ax1.hist(x1[np.isfinite(x1)], bins=50)
     hist2 = ax3.hist(x2[np.isfinite(x2)], bins=50)
+    hist3 = ax5.hist(x3[np.isfinite(x3)], bins=50)
 
     im1 = ax2.imshow(var1[::-1].T, cmap=cmap1, norm=cnorm1)
     im2 = ax4.imshow(var2[::-1].T, cmap=cmap2, norm=cnorm2)
+    im3 = ax6.imshow(var3[::-1].T, cmap=cmap3, norm=cnorm3)
 
     ticks1 = np.linspace(var1min, var1max, 6)
     ticks2 = np.linspace(var2min, var2max, 6)
+    ticks3 = np.linspace(var3min, var3max, 6)
 
     pos1 = ax1.get_position()
     pos2 = ax2.get_position()
@@ -722,11 +759,13 @@ def fig_sigma_param_distributions(otherdata, first=False, **kwargs):
     cbax1 = divider1.append_axes('right', size="3%", pad=0.05)
     divider2 = make_axes_locatable(ax4)
     cbax2 = divider2.append_axes('right', size="3%", pad=0.05)
+    divider3 = make_axes_locatable(ax6)
+    cbax3 = divider3.append_axes('right', size="3%", pad=0.05)
 
-    ims = [im1, im2]
-    cbax = [cbax1, cbax2]
-    ticks = [ticks1, ticks2]
-    labels = [r'$\langle \sigma_{R_V} \rangle / \langle R_V \rangle$', r'$\langle \sigma_{f_{bump}} \rangle / \langle f_{bump} \rangle$']
+    ims = [im1, im2, im3]
+    cbax = [cbax1, cbax2, cbax3]
+    ticks = [ticks1, ticks2, ticks3]
+    labels = [r'$\widetilde{\sigma_{R_V}} / \widetilde{R_V}$', r'$\widetilde{\sigma_{f_{bump}}} / \widetilde{f_{bump}}$', r'$\widetilde{A_V}$']
 
     for i in range(len(cbax)):
         cb = fig.colorbar(ims[i], cax=cbax[i], orientation='vertical', ticks=ticks[i], drawedges=False, extend=extend)
@@ -734,11 +773,11 @@ def fig_sigma_param_distributions(otherdata, first=False, **kwargs):
         cb.ax.tick_params(labelsize=12)
         cb.set_label(labels[i], size=15, labelpad=5)
 
-    for i, ax in enumerate([ax1, ax3]):
+    for i, ax in enumerate([ax1, ax3, ax5]):
         ax.tick_params(axis='both', labelsize=11)
         ax.set_xlabel(labels[i], fontsize=14)
 
-    plt.subplots_adjust(hspace=0.4, wspace=0.03, left=0.1, right=0.92, top=0.92)
+    plt.subplots_adjust(hspace=0.45, wspace=0.03, left=0.1, right=0.92, top=0.92)
     print plotname
     if kwargs['save']:
         plt.savefig(plotname)
@@ -768,50 +807,197 @@ def fig_param_distributions(otherdata, first=False, **kwargs):
     else:
         grid = np.loadtxt(gridfile)
 
-    sel1 = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > 1e-5
+    xlims = [[0, 9.5], [-0.1, 2.8], [0.18, 1.39], [0.28, 0.499]]
     #sel2 = otherdata['av'][np.isfinite(otherdata['avdav'])] + otherdata['dav'][np.isfinite(otherdata['dav'])] > 1.0
+    sel = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > -9999
+    sel1 = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > 1e-5
     sel2 = otherdata['avdav'][np.isfinite(otherdata['avdav'])] > 1.0
+    sel3 = grid[:,1] < 0.75
+    sels = [sel, sel3, sel1, sel2]
 
-    print len(sel1[sel1]), len(sel2[sel2])
+    data, means, sig = [], [], []
+    for k in range(4):
+        data.append([grid[s,k] for s in sels][::-1])
+        means.append([np.mean(grid[s,k]) for s in sels][::-1])
+        sig.append([np.std(grid[s,k]) for s in sels][::-1])
 
-    plotname = os.path.join(_PLOT_DIR, 'rv_fbump_distributions')
-
-    fig, ax = plt.subplots(2, 2)
-
-    hist1 = ax[0,0].hist(grid[:,0], bins=50, histtype='step', color='black', lw=2)
-    hist2 = ax[0,1].hist(grid[:,1], bins=50, histtype='step', color='black', lw=2)
-    hist3 = ax[1,0].hist(grid[:,2], bins=50, histtype='step', color='black', lw=2)
-    hist4 = ax[1,1].hist(grid[:,3], bins=50, histtype='step', color='black', lw=2)
 
     color = next(plt.gca()._get_lines.prop_cycler)
-    c = color['color']
-
-    hist1 = ax[0,0].hist(grid[sel1,0], bins=50, histtype='step', color=c, lw=2)
-    hist2 = ax[0,1].hist(grid[sel1,1], bins=50, histtype='step', color=c, lw=2)
-    hist3 = ax[1,0].hist(grid[sel1,2], bins=50, histtype='step', color=c, lw=2)
-    hist4 = ax[1,1].hist(grid[sel1,3], bins=50, histtype='step', color=c, lw=2)
-
+    c1 = color['color']
     color = next(plt.gca()._get_lines.prop_cycler)
     color = next(plt.gca()._get_lines.prop_cycler)
-    c = color['color']
+    c2 = color['color']
+    colors = ['black', c1, c2]
+    colors2 = colors[::-1]
+    colors2.append('black')
 
-    hist1 = ax[0,0].hist(grid[sel2,0], bins=50, histtype='step', color=c, lw=2)
-    hist2 = ax[0,1].hist(grid[sel2,1], bins=50, histtype='step', color=c, lw=2)
-    hist3 = ax[1,0].hist(grid[sel2,2], bins=50, histtype='step', color=c, lw=2)
-    hist4 = ax[1,1].hist(grid[sel2,3], bins=50, histtype='step', color=c, lw=2)
+    axis_colors = [u'#5DA5DA', u'#FAA43A', u'#60BD68', u'#F15854', u'#39CCCC', u'#B10DC9', u'#FFDC00', u'#85144B', u'#4D4D4D', u'#FF70B1']
+    plt.close('all')
+
+    labels = [r'$\widetilde{R_V}$', r'$\widetilde{\sigma_{R_V}}$', r'$\widetilde{f_{bump}}$',r'$\widetilde{\sigma_{f_{bump}}}$']
+    sel_labels = ['All', r'$\widetilde{\sigma_{R_V}} < 0.75$', 'SFR $>10^{-5}$', '$\widetilde{A_V} > 1.0$']
+
+    fig1, ax1 = plt.subplots(2, 2, figsize=(8,7))
+
+    for i in range(4):
+        hist_args = dict(bins=50, histtype='step', lw=2, range=xlims[i])
+        hist_args2 = dict(bins=50, histtype='stepfilled', lw=2, range=xlims[i])
+        hist1 = ax1[i/2, i%2].hist(grid[sel,i], color=colors[0], label=sel_labels[0], **hist_args)
+        hist2 = ax1[i/2, i%2].hist(grid[sel1,i], color=colors[1], label=sel_labels[2], **hist_args)
+        hist3 = ax1[i/2, i%2].hist(grid[sel2,i], color=colors[2], label=sel_labels[3], **hist_args)
+        hist4 = ax1[i/2, i%2].hist(grid[sel3,i], color=colors[0], alpha=0.2, zorder=-1, label=sel_labels[1], **hist_args2)
+
+    ax1[0,0].legend(frameon=False, fontsize=12)
+    for i in range(4):
+        ax1[i/2, i%2].set_xlim(xlims[i])
+        ax1[i/2, i%2].tick_params(axis='both', labelsize=14)
+        ax1[i/2,i%2].set_xlabel(labels[i], fontsize=16)
+
+    plt.subplots_adjust(wspace=0.2, hspace=0.28, left=0.08, right=0.96, top=0.96)
+    plotname1 = os.path.join(_PLOT_DIR, 'rv_fbump_sels_distributions.pdf')
+    print plotname1
+    if kwargs['save']:
+        plt.savefig(plotname1)
+    else:
+        plt.show()
 
 
-    labels = [r'$\langle R_V \rangle$', r'$\langle \sigma_{R_V} \rangle$', r'$\langle f_{bump} \rangle$',r'$\langle \sigma_{f_{bump}} \rangle$']
+    fig2, ax2 = plt.subplots(2,2, figsize=(8,7), sharey=True)
+    box = dict(sym='x', vert=False)
+    bp1 = ax2[0,0].boxplot(data[0], **box)
+    bp2 = ax2[0,1].boxplot(data[1], **box)
+    bp3 = ax2[1,0].boxplot(data[2], **box)
+    bp4 = ax2[1,1].boxplot(data[3], **box)
 
-    for i, ax in enumerate([ax[0,0], ax[0,1], ax[1,0], ax[1,1]]):
-        ax.tick_params(axis='both', labelsize=14)
-        ax.set_xlabel(labels[i], fontsize=16)
+    lw=2
+    alphas = [1, 1, 0.4, 1]
+    for i in range(len(bp1['boxes'])):
+        box_args = dict(linewidth=lw, color=colors2[i], alpha=alphas[i])
+        flier_args = dict(markersize=3, markeredgewidth=0.1, markeredgecolor=colors2[i], markerfacecolor=colors2[i], alpha=alphas[i])
+        for j, bp in enumerate([bp1, bp2, bp3, bp4]):
+            bp['boxes'][i].set(**box_args)
+            bp['whiskers'][i*2].set(**box_args)
+            bp['whiskers'][i*2+1].set(**box_args)
+            bp['caps'][i*2].set(**box_args)
+            bp['caps'][i*2+1].set(**box_args)
+            bp['medians'][i].set(**box_args)
+            bp['fliers'][i].set(**flier_args)
 
-    plt.subplots_adjust(wspace=0.2, hspace=0.25, left=0.08, right=0.92, top=0.95)
+            ax2[j/2,j%2].plot(means[j][i], i+1, marker='*', mfc='0.4', ms=10)
+            ax2[j/2,j%2].plot(means[j][i]+sig[j][i], i+1, marker='D', mfc=axis_colors[1], ms=4)
+            ax2[j/2,j%2].plot(means[j][i]-sig[j][i], i+1, marker='D', mfc=axis_colors[1], ms=4)
+
+    for i in range(4):
+        ax2[i/2,i%2].set_yticklabels(sel_labels[::-1], rotation=30, fontsize=14)
+        ax2[i/2,i%2].tick_params(axis='both', labelsize=14)
+        ax2[i/2,i%2].tick_params(axis='x')
+        ax2[i/2,i%2].grid()
+        ax2[i/2,i%2].set_xlabel(labels[i], fontsize=16)
+        ax2[i/2, i%2].set_xlim(xlims[i])
+
+    plt.subplots_adjust(wspace=0.02, hspace=0.3, top=0.96, right=0.96)
+    plotname2 = os.path.join(_PLOT_DIR, 'boxplot_rv_fbump_sels.pdf')
+    print plotname2
+    if kwargs['save']:
+        plt.savefig(plotname2)
+    else:
+        plt.show()
+
+
+
+
+
+
+
+
+def fig_boxplot(otherdata, first=False, **kwargs):
+    gridfile = os.path.join(_WORK_DIR, 'med_sig_rv_fbump_per_region.dat')
+    if first:
+        import h5py
+        hf_file = os.path.join(_WORK_DIR, 'all_runs.h5')
+        hf = h5py.File(hf_file, 'r')
+
+        nregs = len(hf.keys())
+        reg_range = range(nregs)
+        nsamples = hf.get(hf.keys()[0])['sampler_chain'].shape[1]
+        grid = np.asarray(np.zeros((nregs, 4)))
+        for i, reg in enumerate(reg_range):
+            group = hf.get(hf.keys()[reg])
+            grid[i,0] = np.median(np.asarray(group['sampler_flatchain'][:,0]))
+            grid[i,1] = np.std(np.asarray(group['sampler_flatchain'][:,0]))
+            grid[i,2] = np.median(np.asarray(group['sampler_flatchain'][:,1]))
+            grid[i,3] = np.std(np.asarray(group['sampler_flatchain'][:,1]))
+        hf.close()
+        np.savetxt(gridfile, grid)
+    else:
+        grid = np.loadtxt(gridfile)
+
+    allregs = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > -9999
+    sfr100 = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > 1e-5
+    avdav = otherdata['avdav'][np.isfinite(otherdata['avdav'])] > 1.0
+    color = next(plt.gca()._get_lines.prop_cycler)
+    c1 = color['color']
+    color = next(plt.gca()._get_lines.prop_cycler)
+    color = next(plt.gca()._get_lines.prop_cycler)
+    c2 = color['color']
+    colors = ['black', c1, c2][::-1]
+    axis_colors = [u'#5DA5DA', u'#FAA43A', u'#60BD68', u'#F15854', u'#39CCCC', u'#B10DC9', u'#FFDC00', u'#85144B', u'#4D4D4D', u'#FF70B1']
+    plt.close('all')
+
+    sels = [allregs, sfr100, avdav]
+
+    data, means, sig = [], [], []
+    for k in range(4):
+        data.append([grid[s,k] for s in sels][::-1])
+        means.append([np.mean(grid[s,k]) for s in sels][::-1])
+        sig.append([np.std(grid[s,k]) for s in sels][::-1])
+
+    box = dict(sym='x', vert=False)
+    fig, ax = plt.subplots(2,2, figsize=(8,7), sharey=True)
+    bp1 = ax[0,0].boxplot(data[0], **box)
+    bp2 = ax[0,1].boxplot(data[1], **box)
+    bp3 = ax[1,0].boxplot(data[2], **box)
+    bp4 = ax[1,1].boxplot(data[3], **box)
+
+    lw=2
+    for i in range(len(bp1['boxes'])):
+        for j, bp in enumerate([bp1, bp2, bp3, bp4]):
+            bp['boxes'][i].set(color=colors[i], linewidth=lw)
+            bp['whiskers'][i*2].set(color=colors[i], linewidth=lw)
+            bp['whiskers'][i*2+1].set(color=colors[i], linewidth=lw)
+            bp['medians'][i].set(linewidth=lw, color='0.6')
+            bp['caps'][i*2].set(linewidth=lw, color=colors[i])
+            bp['caps'][i*2+1].set(linewidth=lw, color=colors[i])
+            bp['fliers'][i].set(markersize=3, markeredgewidth=0.1, markeredgecolor=colors[i], markerfacecolor=colors[i])
+            #set_trace()
+            ax[j/2,j%2].plot(means[j][i], i+1, marker='*', mfc='0.4', ms=10)
+            ax[j/2,j%2].plot(means[j][i]+sig[j][i], i+1, marker='D', mfc=axis_colors[1], ms=4)
+            ax[j/2,j%2].plot(means[j][i]-sig[j][i], i+1, marker='D', mfc=axis_colors[1], ms=4)
+
+
+    labels = [r'$\widetilde{R_V}$', r'$\widetilde{\sma_{R_V}}$', r'$\widetilde{f_{bump}}$',r'$\widetilde{\sigma_{f_{bump}}}$']
+    for i, a in enumerate(fig.axes):
+        a.set_yticklabels(['All', 'SFR $>$'+'\n'+'$10^{-5}$', '$\widetilde{A_V} > $'+'\n'+'$1.0$'][::-1], rotation=30)
+        a.tick_params(axis='both', labelsize=14)
+        a.tick_params(axis='x')
+        #a.text(0.7, 0.85, labels[i], fontsize=16, transform=a.transAxes)
+        a.grid()
+        a.set_xlabel(labels[i], fontsize=16)
+        #a.xaxis.set_label_position('top')
+
+    ax[0,0].set_xlim(0.0, 9.5)
+    ax[0,1].set_xlim(-0.1, 2.8)
+    ax[1,0].set_xlim(0.0, 1.39)
+    ax[1,1].set_xlim(0.28, 0.499)
+    plt.subplots_adjust(wspace=0.02, hspace=0.3, top=0.96, right=0.96)
+
+    plotname = os.path.join(_PLOT_DIR, 'boxplot_rv_fbump.pdf')
+    print plotname
     if kwargs['save']:
         plt.savefig(plotname)
     else:
         plt.show()
+
 
 
 def fig_ensemble_triangles(infile='/Users/alexialewis/research/PHAT/dustvar/sampler_independent/final_sampler_rv_fbump.h5', **kwargs):
@@ -1248,9 +1434,10 @@ if __name__ == '__main__':
     #fig_att_curves(tage=0.0, **kwargs)   ##fig1
     #fig_fluxratio_av(fuvdata, nuvdata, otherdata, two=True, **kwargs)  ##fig2
     #fig_compare_rv_fb()  ## fig3
-    fig_region_triangles(otherdata, **kwargs)
+    #fig_region_triangles(otherdata, **kwargs)
     #fig_sigma_param_distributions(otherdata, **kwargs)
-    #fig_param_distributions(otherdata, **kwargs)
+    fig_param_distributions(otherdata, **kwargs)
+    #fig_boxplot(otherdata, first=False, **kwargs)
     #fig_ensemble_triangles(infile='/Users/alexialewis/research/PHAT/dustvar/sampler_independent/final_sampler_rv_fbump.h5', **kwargs)
     #fig_att_curves(tage=0.0, mine=True, **kwargs)
 
