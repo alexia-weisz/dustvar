@@ -812,7 +812,8 @@ def fig_param_distributions(otherdata, first=False, **kwargs):
     sel = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > -9999
     sel1 = otherdata['sfr100'][np.isfinite(otherdata['sfr100'])] > 1e-5
     sel2 = otherdata['avdav'][np.isfinite(otherdata['avdav'])] > 1.0
-    sel3 = grid[:,1] < 0.75
+    #sel3 = grid[:,1] < 0.75
+    sel3 = grid[:,1] / grid[:,0] < 0.2
     sels = [sel, sel3, sel1, sel2]
 
     data, means, sig = [], [], []
@@ -835,7 +836,7 @@ def fig_param_distributions(otherdata, first=False, **kwargs):
     plt.close('all')
 
     labels = [r'$\widetilde{R_V}$', r'$\widetilde{\sigma_{R_V}}$', r'$\widetilde{f_{bump}}$',r'$\widetilde{\sigma_{f_{bump}}}$']
-    sel_labels = ['All', r'$\widetilde{\sigma_{R_V}} < 0.75$', 'SFR $>10^{-5}$', '$\widetilde{A_V} > 1.0$']
+    sel_labels = ['All', r'$\widetilde{\sigma_{R_V}} / \widetilde{R_V} < 0.2$', 'SFR $>10^{-5}$', '$\widetilde{A_V} > 1.0$']
 
     fig1, ax1 = plt.subplots(2, 2, figsize=(8,7))
 
