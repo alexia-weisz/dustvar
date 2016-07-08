@@ -103,7 +103,7 @@ def get_sfh_metals(ind, res='90', dust_curve='cardelli'):
     return age, sfr
 
 
-def redden(wave, spec, rv=3.1, f_bump=1.0, av=None, dav=None, nsplit=9, dust_curve=None, wlo=1216., whi=2e4, **kwargs):
+def redden(wave, spec, rv=3.1, f_bump=1.0, av=None, dav=None, nsplit=9, dust_curve=attenuation.conroy, wlo=1216., whi=2e4, **kwargs):
     """
     from scombine.dust
     """
@@ -153,15 +153,16 @@ def spectrum(sfr, age, **kwargs):
     av, dav = kwargs.get('av', None), kwargs.get('dav', None)
     rv, f_bump = kwargs.get('rv', 3.1), kwargs.get('f_bump', 1.0)
     nsplit = kwargs.get('nsplit', 30)
-    dust_curve = kwargs.get('dust_curve', 'cardelli')
     fsps_kwargs = kwargs.get('fsps_kwargs', {})
+    logzsol = kwargs.get('logzsol', None)
 
+    dust_curve = attenuation.conroy
     # To save time, create StellarPopulation only when necessary
     try:
         sps = CURRENT_SP[0]
     except IndexError:
         sps = fsps.StellarPopulation()
-        CURRENT_SP.append(sp)
+        CURRENT_SP.append(sps)
     fsps_kwargs['sfh'] = 0
     for key, val in fsps_kwargs.items():
         sps.params[key] = val
@@ -199,7 +200,7 @@ def spectrum(sfr, age, **kwargs):
 def weight_output(lt, sfr, ssp_ages, lookback_time, wave, spec, mass):
     # Get interpolation weights based on the SFH
     target_lt = np.atleast_1d(lookback_time)
-    aw = bursty_sfh.sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt, **extras)
+    aw = bursty_sfh.sfh_weights(lt, sfr, ssp_ages, lookback_time=target_lt)
 
     # Do the linear combination
     int_spec = (spec[None,:,:] * aw[:,:,None]).sum(axis=1)
@@ -237,7 +238,7 @@ def ext_func(spec_data, intrinsic_data, rv, av, dav, f_bump=1., att=attenuation.
     wave, spec, mass, lookback_time, ssp_ages = spec_data
 
     spec, lir = redden(wave, spec, rv=rv, f_bump=f_bump, av=av, dav=dav,
-                       dust_curve=dust_curve, nsplit=nsplit)
+                       dust_curve=att, nsplit=nsplit)
 
     wave_red, spec_red, lum_ir = weight_output(lt, sfr, ssp_ages, lookback_time, wave, spec, mass)
 
@@ -395,7 +396,7 @@ def plot_data_dist(datax, datay, sampler):
     ax.set_ylim(ylim)
 
 
-def no_dust(spec_data):
+def no_dust(spec_data, age, sfr):
     waveint, specint, massint, lookback_timeint, ssp_agesint = spec_data
     waveint, specint, lum_irint = weight_output(age, sfr, ssp_agesint, lookback_timeint, waveint, specint, massint)
     mags_int = astrogrid.flux.calc_mag(wave, spec, bands, dmod=DIST.distmod)
@@ -420,7 +421,7 @@ def main(i, **kwargs):
     #wave, spec, mass, lookback_time, ssp_ages = spectrum(sfr, age)
     spec_data = spectrum(sfr, age)
 
-    mags_int, fluxes_int = no_dust(spec_data)
+    mags_int, fluxes_int = no_dust(spec_data, age, sfr)
     intrinsic_data = mags_int, fluxes_int
 
 
