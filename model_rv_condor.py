@@ -154,8 +154,6 @@ def spectrum(sfr, age, **kwargs):
     rv, f_bump = kwargs.get('rv', 3.1), kwargs.get('f_bump', 1.0)
     nsplit = kwargs.get('nsplit', 30)
     dust_curve = kwargs.get('dust_curve', 'cardelli')
-    if isinstance(dust_curve, basestring):
-        dust_curve = DUST_CURVE[dust_curve]
     fsps_kwargs = kwargs.get('fsps_kwargs', {})
 
     # To save time, create StellarPopulation only when necessary
