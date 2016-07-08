@@ -56,7 +56,7 @@ def get_data(ind, res='90', dust_curve='cardelli'):
     sfr = sfr[np.isfinite(sfr)]
     sel = (sfr > 1e-5) & (data_color < 2.)
 
-    return data_fuv[ind], data_nuv[ind], data_color[ind], av[ind], dav[ind], len(dav)
+    return data_fuv[ind], data_nuv[ind], data_color[ind], av[ind], dav[ind], len(str(len(dav)))
 
 
 def get_sfh_metals(ind, res='90', dust_curve='cardelli'):
