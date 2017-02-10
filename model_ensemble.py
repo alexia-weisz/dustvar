@@ -8,7 +8,8 @@ import time
 import emcee
 import compile_data
 from pdb import set_trace
-
+import matplotlib.patches as patches
+from matplotlib.path import Path
 
 def evaluate_lneta(theta, grid):
     mean = theta[0] #+ theta[2] * np.log10(sfr / np.mean(sfr))
@@ -145,24 +146,51 @@ def model(grid, nwalkers, first_init, run_steps, restart_steps, gridtype='rv', n
 
 if __name__ == '__main__':
 
-    selection = False#True
+    selection = True
     write = True
 
     data_loc = '/Users/alexialewis/research/PHAT/dustvar'
-    filename = os.path.join(data_loc, 'all_runs_nofbump.h5')
+    filename = os.path.join(data_loc, 'all_runs.h5')
 
-    if selection:
-        outfile = os.path.join(data_loc,'final_sampler_rv_nofbump_avdavgt05.h5')
-    else:
-        outfile = os.path.join(data_loc, 'final_sampler_rv_nofbump.h5')
+    gridfile = os.path.join(data_loc, 'med_sig_rv_fbump_per_region.dat')
+    grid = np.loadtxt(gridfile)
 
     nsamples = 50
 
     fuvdata, nuvdata, otherdata = compile_data.gather_map_data()
     sfr100 = otherdata['sfr100']
     avdav = otherdata['avdav']
-    #sel = np.where(sfr100[np.isfinite(sfr100)].flatten() > 1e-6)[0]
-    sel = np.where(avdav[np.isfinite(avdav)].flatten() > 0.5)[0]
+    goodsel = np.isfinite(sfr100).flatten()
+
+    allsfr = (sfr100.flatten() > 1e-5)[goodsel]
+    sfrsel = np.where(sfr100[np.isfinite(sfr100)].flatten() > 1e-5)[0]
+    #out = '_sfrgt1e-5.h5'
+    #sel = np.where(avdav[np.isfinite(avdav)].flatten() > 0.5)[0]
+    #out = '_avdavgt1.h5'
+
+    #sel = np.where(grid[:,1] / grid[:,0] < 0.2)[0]
+    #out = '_sigrvrvlt02.h5'
+
+    ## model just the inner region
+    im = plt.imshow(sfr100)
+    ellipse = patches.Ellipse((70, 0), 182, 45, angle=103, ec='g', lw=2, fc='none') ## this was done by eye
+    plt.gca().add_patch(ellipse)
+    v = ellipse.get_verts()
+    inv = plt.gca().transData.inverted()
+    t = inv.transform((v))
+    x, y = np.arange(sfr100.shape[0]), np.arange(sfr100.shape[1])
+    xx, yy = np.meshgrid(x, y, indexing='ij')
+    inds = np.asarray(zip(yy.flatten(), xx.flatten()))
+    ss = Path(t).contains_points(inds)[goodsel]
+    sel = np.where(~ss & allsfr)[0]#.reshape(sfr100.shape))
+    set_trace()
+    out = '_inner_reg_and_sfrgt1e-5'
+
+    if selection:
+        outfile = os.path.join(data_loc, 'final_sampler_rv_fbump' + out +'.h5')
+    else:
+        outfile = os.path.join(data_loc, 'final_sampler_rv_nofbump.h5')
+
 
     with h5py.File(filename, 'r') as hf:
         if selection:
@@ -188,7 +216,7 @@ if __name__ == '__main__':
             rvgrid[i,:] = rvrange
             fbgrid[i,:] = fbrange
 
-
+    #set_trace()
     # steps to take in the burn in runs, restarts, and final run
     restart_steps = 500
     run_steps = 1000
@@ -229,19 +257,19 @@ if __name__ == '__main__':
 
 
     plot_walkers(sampler_rv, nwalkers, ndim, labels=labels_rv)
-    plotname_rvw = os.path.join(data_loc, 'plots', 'walkers_rv.pdf')
+    plotname_rvw = os.path.join(data_loc, 'plots', 'walkers_rv' + out + '.pdf')
     #plt.savefig(plotname_rvw)
 
     plot_walkers(sampler_fb, nwalkers, ndim, labels=labels_fb)
-    plotname_fbw = os.path.join(data_loc, 'plots', 'walkers_fb.pdf')
+    plotname_fbw = os.path.join(data_loc, 'plots', 'walkers_fb' + out + '.pdf')
     #plt.savefig(plotname_fbw)
 
     plot_triangle(sampler_rv, labels=labels_rv, truths=None, ndim=None)
-    plotname_rvt = os.path.join(data_loc, 'plots', 'triangle_rv.pdf')
+    plotname_rvt = os.path.join(data_loc, 'plots', 'triangle_rv' + out +'.pdf')
     #plt.savefig(plotname_rvt)
 
     plot_triangle(sampler_fb, labels=labels_fb, truths=None, ndim=None)
-    plotname_fbt = os.path.join(data_loc, 'plots', 'triangle_fb.pdf')
+    plotname_fbt = os.path.join(data_loc, 'plots', 'triangle_fb' + out +'.pdf')
     #plt.savefig(plotname_fbt)
     plt.show()
 

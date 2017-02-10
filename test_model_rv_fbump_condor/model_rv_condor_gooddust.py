@@ -5,8 +5,7 @@ import h5py
 import time
 import os
 import sys
-
-from astrogrid.flux import calc_mag, mag2flux
+import from astrogrid.flux import calc_mag, mag2flux
 
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
@@ -55,7 +54,7 @@ def get_data(res='90', dust_curve='cardelli'):
     sel = (sfr > 1e-5) & (data_color < 2.)
 
     sfh = []
-    for i in range(sfhcube.shape[0]):
+    for i in range(len(sfhcube.shape[0])):
         x = sfhcube[i,:,:]
         x[selbad] = np.nan
         sfh.append(x[np.isfinite(x)])
@@ -104,11 +103,10 @@ def ext_func(rv, av, dav, f_bump=1., att=attenuation.conroy):
     f_bump : float, optional; strength of the 2175 \AA bump in fraction of MW bump strength
     att : sedpy.attenuation funcion, optional; attenuation curve to use. Default: attenuation.conroy
     """
-    #specred, lir = redden(wave, spec, av=av, dav=dav, rv=rv, fbump=f_bump, dust_curve=att, nsplit=30)
     specred, lir = redden(wave, spec, av=av, dav=dav, rv=rv, fbump=f_bump, dust_curve=att, nsplit=30)
 
     mags_red = [calc_mag(wave, specred, band, dmod=24.47) for band in ['galex_fuv', 'galex_nuv']]
-    mags = [calc_mag(wave, spec, band, dmod=24.47) for band in ['galex_fuv', 'galex_nuv']]
+    mags = [calc_mag(wave, spec, band, cmod=24.47) for band in ['galex_fuv', 'galex_nuv']]
 
     fluxes_red = [mag2flux(mags_red[0], 'galex_fuv'), mag2flux(mags_red[1], 'galex_nuv')]
     fluxes = [mag2flux(mags[0], 'galex_fuv'), mag2flux(mags[1], 'galex_nuv')]
@@ -263,11 +261,11 @@ def plot_data_dist(datax, datay, sampler):
 def main(i, **kwargs):
 
     ## location to store data
-    data_loc = '/Users/alexialewis/research/PHAT/dustvar/'
-    #data_loc = '/astro/store/phat/arlewis/dustvar/'
+    #data_loc = '/Users/alexialewis/research/PHAT/dustvar/'
+    data_loc = '/astro/store/phat/arlewis/dustvar/'
 
     # gather the real data
-    y_fuv, y_nuv, y_color, av, dav, sfh = get_data()
+    y_fuv, y_nuv, y_color, av, dav = get_data()
     y_fuv, y_nuv, y_color = y_fuv, y_nuv, y_color
     z = len(str(len(y_fuv)))
 
@@ -275,9 +273,9 @@ def main(i, **kwargs):
 
 
     # steps to take in the burn in runs, restarts, and final run
-    restart_steps = 300#500
-    run_steps = 600#1000
-    n_restarts = 4#8
+    restart_steps = 500
+    run_steps = 1000
+    n_restarts = 8
 
     #initial guess of mu_rv and sigma_rv
     first_init = [2.5, 0.9]
@@ -320,11 +318,6 @@ def main(i, **kwargs):
         g.create_dataset(labs[0], data=np.percentile(sampler.flatchain[:,0], [16, 50, 84]))
         g.create_dataset(labs[1], data=np.percentile(sampler.flatchain[:,1], [16, 50, 84]))
         g.create_dataset('run_time', data=np.around(t1-t0, 2))
-
-
-    print t1 - t0
-    print np.percentile(sampler.flatchain[:,0], [16, 50, 84])
-    print np.percentile(sampler.flatchain[:,1], [16, 50, 84])
 
 
 if __name__ == '__main__':

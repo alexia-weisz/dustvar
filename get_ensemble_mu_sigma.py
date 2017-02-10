@@ -12,7 +12,7 @@ def write_to_screen(infile):
         print 'sigma_fb: ', hf.get('f_bump')['sigma'][1], np.diff(hf.get('f_bump')['sigma'][:])
 
 
-def plot_triangle(infile):
+def plot_triangle(infile, sel):
     import corner
     plotloc = '/Users/alexialewis/research/PHAT/dustvar/plots/'
     with h5py.File(infile, 'r') as hf:
@@ -23,8 +23,8 @@ def plot_triangle(infile):
         labels_fb = ['$\mu_{f_{bump}}$', '$\sigma_{f_{bump}}$']
 
         fig1 = corner.corner(sampler_rv,labels=labels_rv)#,range=lim)
-        plotname1 = plotloc + 'triangle_rv_sfrgt-5.pdf'
+        plotname1 = plotloc + 'triangle_rv_' + sel + '.pdf'#sfrgt-5.pdf'
         plt.savefig(plotname1)
         fig2 = corner.corner(sampler_fb, labels=labels_fb)
-        plotname2 = plotloc + 'triangle_fb_sfrgt-5.pdf'
+        plotname2 = plotloc + 'triangle_fb_' + sel + '.pdf'#sfrgt-5.pdf'
         plt.savefig(plotname2)

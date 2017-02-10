@@ -37,9 +37,7 @@ def gather_map_data(res='90', dust_curve='cardelli', sfh='full_sfh'):
 
     _DATA_DIR, _WORK_DIR, _MOD_DIR = define_dir_structure(res)
 
-    obsfiles = ['galex_fuv_test.fits', 'galex_fuv0.fits',
-                'galex_fuv_nobgsub.fits', 'galex_nuv_test.fits',
-                'galex_nuv0.fits','galex_nuv_nobgsub.fits']
+    obsfiles = ['galex_fuv_final.fits', 'galex_nuv_final.fits']
 
     modfiles = ['mod_fuv_red.fits', 'mod_fuv_int.fits',
                 'mod_nuv_red.fits', 'mod_nuv_int.fits',
@@ -59,9 +57,7 @@ def gather_map_data(res='90', dust_curve='cardelli', sfh='full_sfh'):
     w[(w > 0) & (w < 0.95)] = 0
     sel = (w == 0)
 
-    fuvfluxobs, fuvfluxobs_bg, fuvfluxobs_nobg = [pyfits.getdata(os.path.join(_DATA_DIR, x)) * w for x in obsfiles[0:3]]
-
-    nuvfluxobs, nuvfluxobs_bg, nuvfluxobs_nobg = [pyfits.getdata(os.path.join(_DATA_DIR, x)) * w for x in obsfiles[3:6]]
+    fuvfluxobs, nuvfluxobs = [pyfits.getdata(os.path.join(_DATA_DIR, x)) * w for x in obsfiles[0:2]]
 
     fuvfluxmodred, fuvfluxmodint = [pyfits.getdata(os.path.join(_DATA_DIR,
         dust_curve, sfh, x)) * w for x in modfiles[0:2]]

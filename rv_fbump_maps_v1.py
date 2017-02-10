@@ -108,7 +108,7 @@ def make_maps(rv, fb, rvlims=[0,10], fblims=[0,1.5], cmap1=plt.cm.inferno, cmap2
         plt.show()
 
 
-def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.Blues, cmap2=plt.cm.Reds, save=False, cut=True):
+def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.Blues, cmap2=plt.cm.Reds, save=True, cut=True):
     sfrsel = other['sfr100'] < 1e-5
     new_rv, new_fb = copy.copy(rv), copy.copy(fb)
     if cut:
@@ -122,7 +122,7 @@ def map1(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cma
     if cut:
         plotname = os.path.join(data_loc,'plots/rv_fbump_maps_sfrcut_1e-5.pdf')
     print plotname
-    make_maps(new_rv, new_fb, rvlims=[2.4, 4.2], fblims=[0.5, 1.1], cmap1=cmap1, cmap2=cmap2, save=save, plotname=plotname, labels=labels)
+    make_maps(new_rv, new_fb, rvlims=[2, 5], fblims=[0.4, 1.3], cmap1=cmap1, cmap2=cmap2, save=save, plotname=plotname, labels=labels)
 
 
 def map2(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustvar', cmap1=plt.cm.RdBu, cmap2=plt.cm.RdBu, save=False):
@@ -149,24 +149,24 @@ def sfr_rv_fbump(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustv
     av = other['avdav'][np.isfinite(other['avdav'])]
     x = rv[np.isfinite(rv)].flatten()
     y = fb[np.isfinite(fb)].flatten()
-    z1 = av
-    z2 = np.log10(sfr.flatten())
-    xlim = [0, 9]
-    ylim = [0.15, 1.35]
-    zlim1 = [0, 1.5]
-    zlim2 = [-7, -3.5]
+    z1 = np.log10(sfr.flatten())
+    z2 = av
+    xlim = [0, 6]
+    ylim = [0.2, 1.2]
+    zlim1 = [-7, -3.5]
+    zlim2 = [0, 1.5]
     zticks1 = np.linspace(zlim1[0], zlim1[1], 6)
     zticks2 = np.linspace(zlim2[0], zlim2[1], 6)
 
-    bins=50
+    bins=30
     func = 'median'
     cnorm1 = mcolors.Normalize(vmin=zlim1[0], vmax=zlim1[-1])
     cnorm2 = mcolors.Normalize(vmin=zlim2[0], vmax=zlim2[-1])
     fmt = None
     xlabel = r'$\langle R_V \rangle$'
     ylabel = r'$\langle f_{\rm bump} \rangle$'
-    zlabel1 = '$\widetilde{A_V}$'
-    zlabel2 = '$\log$ SFR \Big[M$_\odot$ yr$^{-1}$\Big]'
+    zlabel1 = '$\log$ SFR \Big[M$_\odot$ yr$^{-1}$\Big]'
+    zlabel2 = '$\widetilde{A_V}$'
     extend = 'neither'
 
     cmap = plt.cm.inferno
@@ -176,17 +176,17 @@ def sfr_rv_fbump(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustv
     hist_kwargs2 = {'func': 'count', 'bins': bins, 'xlim': xlim,
                    'ylim': ylim, 'cmap': cmap}
 
-    sel = x < 9
+    sel = x < 6
 
     counts1, xbins1, ybins1, bn = make_2dhist_func(None, x[sel], y[sel], z1[sel], cnorm=cnorm1, **hist_kwargs2)
     counts2, xbins2, ybins2, bn = make_2dhist_func(None, x[sel], y[sel], z2[sel], cnorm=cnorm2, **hist_kwargs2)
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7.5,4), sharex=True, sharey=True)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(7,4), sharex=True, sharey=True)
 
     im1, cnorm1, bindata1 = make_2dhist_func(ax1, x[sel], y[sel], z1[sel], cnorm=cnorm1, **hist_kwargs)
     im2, cnorm2, bindata2 = make_2dhist_func(ax2, x[sel], y[sel], z2[sel], cnorm=cnorm2, **hist_kwargs)
 
-    levels = [5, 20, 35]
+    levels = [5, 15, 30]
     lw = 1
     ls = 'solid'
     color = '#00D8FF'
@@ -201,7 +201,6 @@ def sfr_rv_fbump(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustv
     extendlist = ['both', 'max']
     zlimlist = [zlim1, zlim2]
     for i, ax in enumerate(axlist):
-        ax.plot(3.1, 1.0, marker='*', ms=20, mfc='yellow', mec='0.5', mew=0.5)
         divider = make_axes_locatable(ax)
         cbax = divider.append_axes('top', size='5%', pad=0.05)
         cb = fig.colorbar(imlist[i], cax=cbax, norm=cnormlist[i], orientation='horizontal', ticks=ticklist[i], extend=extendlist[i])
@@ -220,7 +219,7 @@ def sfr_rv_fbump(rv, fb, other, data_loc='/Users/alexialewis/research/PHAT/dustv
 
     plt.subplots_adjust(wspace=0.1, left=0.1, right=0.9)
     plotname = os.path.join(data_loc, 'plots/sfr_av_rv_fbump_contours.pdf')
-    plt.savefig(plotname)
+    #plt.savefig(plotname)
     plt.show()
 
 
